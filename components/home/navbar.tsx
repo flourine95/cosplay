@@ -70,8 +70,9 @@ export function Navbar() {
             variant="outline"
             className="hidden rounded-full md:flex"
             size="sm"
+            asChild
           >
-            Đăng nhập
+            <Link href="/login">Đăng nhập</Link>
           </Button>
           <Button
             variant="ghost"
@@ -122,8 +123,8 @@ export function Navbar() {
             </Link>
           </nav>
           <div className="mt-4">
-            <Button variant="outline" className="w-full rounded-full">
-              Đăng nhập
+            <Button variant="outline" className="w-full rounded-full" asChild>
+              <Link href="/login">Đăng nhập</Link>
             </Button>
           </div>
         </SheetContent>
