@@ -1,3 +1,17 @@
+export type Review = {
+  id: string
+  productSlug: string
+  userName: string
+  userAvatar?: string
+  rating: number
+  title: string
+  comment: string
+  images?: string[]
+  createdAt: Date
+  verified: boolean
+  helpful: number
+}
+
 export type Product = {
   slug: string
   name: string
@@ -252,4 +266,160 @@ export function getProduct(slug: string): Product | undefined {
 
 export function getRelated(slug: string, limit = 4): Product[] {
   return products.filter((p) => p.slug !== slug).slice(0, limit)
+}
+
+export function searchProducts(
+  query: string,
+  filters?: {
+    category?: string
+    priceRange?: [number, number]
+    sortBy?: string
+  }
+): Product[] {
+  let results = products
+
+  // Search by name, series, or description
+  if (query.trim()) {
+    const lowerQuery = query.toLowerCase()
+    results = results.filter(
+      (p) =>
+        p.name.toLowerCase().includes(lowerQuery) ||
+        p.series.toLowerCase().includes(lowerQuery) ||
+        p.description.toLowerCase().includes(lowerQuery) ||
+        p.category.toLowerCase().includes(lowerQuery)
+    )
+  }
+
+  // Filter by category
+  if (filters?.category && filters.category !== "all") {
+    results = results.filter((p) => p.category === filters.category)
+  }
+
+  // Filter by price range
+  if (filters?.priceRange) {
+    const [minPrice, maxPrice] = filters.priceRange
+    results = results.filter((p) => p.price >= minPrice && p.price <= maxPrice)
+  }
+
+  // Sort
+  if (filters?.sortBy) {
+    switch (filters.sortBy) {
+      case "price-asc":
+        results.sort((a, b) => a.price - b.price)
+        break
+      case "price-desc":
+        results.sort((a, b) => b.price - a.price)
+        break
+      case "rating":
+        results.sort((a, b) => b.rating - a.rating)
+        break
+      case "newest":
+        // Assuming newer products are at the start
+        break
+      default:
+        break
+    }
+  }
+
+  return results
+}
+
+// Mock reviews data
+export const reviews: Review[] = [
+  {
+    id: "1",
+    productSlug: "nezuko-kamado",
+    userName: "Nguyễn Thị A",
+    userAvatar:
+      "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face",
+    rating: 5,
+    title: "Tuyệt vời! Chất lượng vượt trội",
+    comment:
+      "Trang phục rất đẹp, chất liệu tốt, đường may tỉ mỉ. Mình đã tham gia cosplay với bộ này và nhận được rất nhiều lời khen. Giao hàng nhanh, đóng gói cẩn thận.",
+    images: [
+      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400&h=300&fit=crop",
+    ],
+    createdAt: new Date("2024-03-15"),
+    verified: true,
+    helpful: 12,
+  },
+  {
+    id: "2",
+    productSlug: "nezuko-kamado",
+    userName: "Trần Văn B",
+    rating: 5,
+    title: "Đúng như mô tả",
+    comment:
+      "Màu sắc trung thực với nhân vật gốc, size vừa vặn. Rất hài lòng với sản phẩm này. Sẽ ủng hộ shop lần sau!",
+    createdAt: new Date("2024-03-10"),
+    verified: true,
+    helpful: 8,
+  },
+  {
+    id: "3",
+    productSlug: "nezuko-kamado",
+    userName: "Lê Thị C",
+    rating: 4,
+    title: "Tốt nhưng có thể cải thiện",
+    comment:
+      "Trang phục đẹp, chất lượng ổn. Tuy nhiên phần dây buộc có thể làm chắc chắn hơn. Overall vẫn rất hài lòng.",
+    createdAt: new Date("2024-03-08"),
+    verified: false,
+    helpful: 5,
+  },
+  {
+    id: "4",
+    productSlug: "rem-rezero",
+    userName: "Phạm Văn D",
+    rating: 5,
+    title: "Yêu thích bộ này!",
+    comment:
+      "Chi tiết ren rất tinh xảo, màu xanh dương đẹp mắt. Đã thử cosplay và nhận được nhiều like trên mạng xã hội.",
+    createdAt: new Date("2024-03-12"),
+    verified: true,
+    helpful: 15,
+  },
+  {
+    id: "5",
+    productSlug: "batman",
+    userName: "Hoàng Thị E",
+    rating: 5,
+    title: "Batman đích thực!",
+    comment:
+      "Chất liệu giả da rất tốt, đệm cơ bắp tạo cảm giác thật. Mặt nạ và áo choàng đi kèm rất tiện lợi. Đáng đồng tiền!",
+    createdAt: new Date("2024-03-14"),
+    verified: true,
+    helpful: 20,
+  },
+]
+
+export function getProductReviews(productSlug: string): Review[] {
+  return reviews.filter((review) => review.productSlug === productSlug)
+}
+
+export function addReview(
+  review: Omit<Review, "id" | "createdAt" | "helpful">
+): Review {
+  const newReview: Review = {
+    ...review,
+    id: Date.now().toString(),
+    createdAt: new Date(),
+    helpful: 0,
+  }
+  reviews.unshift(newReview) // Add to beginning of array
+  return newReview
+}
+
+export function updateProductRating(productSlug: string) {
+  const productReviews = getProductReviews(productSlug)
+  if (productReviews.length === 0) return
+
+  const averageRating =
+    productReviews.reduce((sum, review) => sum + review.rating, 0) /
+    productReviews.length
+  const product = products.find((p) => p.slug === productSlug)
+  if (product) {
+    product.rating = Math.round(averageRating * 10) / 10
+    product.reviewCount = productReviews.length
+  }
 }

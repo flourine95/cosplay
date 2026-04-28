@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { useCart } from "@/lib/cart-context"
+import { toast } from "sonner"
 import type { Product } from "@/lib/products"
 
 type Mode = "buy" | "rent"
@@ -28,9 +30,37 @@ export function ProductInfo({ product }: { product: Product }) {
   const [mode, setMode] = useState<Mode>("buy")
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [rentDays, setRentDays] = useState(3)
+  const { addItem } = useCart()
 
   const currentPrice =
     mode === "buy" ? product.price : (product.rentPrice ?? 0) * rentDays
+
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      toast.error("Vui lòng chọn size")
+      return
+    }
+
+    addItem({
+      productSlug: product.slug,
+      productName: product.name,
+      price: currentPrice,
+      quantity: 1,
+      size: selectedSize,
+      type: mode,
+      rentDays: mode === "rent" ? rentDays : undefined,
+      image: product.images[0],
+    })
+
+    toast.success(
+      mode === "buy"
+        ? `${product.name} đã được thêm vào giỏ hàng`
+        : `Đã đặt thuê ${product.name} trong ${rentDays} ngày`
+    )
+
+    // Reset form after adding
+    setSelectedSize(null)
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,7 +236,11 @@ export function ProductInfo({ product }: { product: Product }) {
 
       {/* CTAs */}
       <div className="flex flex-col gap-2">
-        <Button size="lg" className="w-full rounded-full">
+        <Button
+          size="lg"
+          className="w-full rounded-full"
+          onClick={handleAddToCart}
+        >
           <ShoppingCart data-icon="inline-start" />
           {mode === "buy" ? "Thêm vào giỏ hàng" : `Đặt thuê ${rentDays} ngày`}
         </Button>
