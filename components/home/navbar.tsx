@@ -71,7 +71,7 @@ export function Navbar() {
             className="hidden rounded-full md:flex"
             size="sm"
           >
-            Đăng nhập
+            <Link href="/login">Đăng nhập</Link>
           </Button>
           <Button
             variant="ghost"
@@ -123,7 +123,7 @@ export function Navbar() {
           </nav>
           <div className="mt-4">
             <Button variant="outline" className="w-full rounded-full">
-              Đăng nhập
+              <Link href="/login">Đăng nhập</Link>
             </Button>
           </div>
         </SheetContent>
