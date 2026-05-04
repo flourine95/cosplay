@@ -46,30 +46,38 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Link href="/search" className="hidden md:flex">
-            <Button variant="ghost" size="icon" aria-label="Tìm kiếm">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Tìm kiếm"
+            className="hidden md:flex"
+            asChild
+          >
+            <Link href="/search">
               <Search />
-            </Button>
-          </Link>
-          <Link href="/cart">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative"
-              aria-label="Giỏ hàng"
-            >
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            aria-label="Giỏ hàng"
+            asChild
+          >
+            <Link href="/cart">
               <ShoppingCart />
               {totalItems > 0 && (
-                <Badge className="absolute -top-1 -right-1 size-4 justify-center border-0 bg-primary p-0 text-[10px]">
+                <Badge className="absolute -top-1 -right-1 size-4 justify-center border-0 bg-primary p-0 text-[11px]">
                   {totalItems > 99 ? "99+" : totalItems}
                 </Badge>
               )}
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <Button
             variant="outline"
             className="hidden rounded-full md:flex"
             size="sm"
+            asChild
           >
             <Link href="/login">Đăng nhập</Link>
           </Button>
@@ -122,7 +130,7 @@ export function Navbar() {
             </Link>
           </nav>
           <div className="mt-4">
-            <Button variant="outline" className="w-full rounded-full">
+            <Button variant="outline" className="w-full rounded-full" asChild>
               <Link href="/login">Đăng nhập</Link>
             </Button>
           </div>
