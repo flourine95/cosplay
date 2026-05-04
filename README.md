@@ -1,21 +1,37 @@
-# Next.js template
+# cosplay-ui
 
-This is a Next.js template with shadcn/ui.
+Website cosplay được xây dựng bằng **Next.js**, **React** và **Tailwind CSS**.
 
-## Adding components
+## Bắt đầu
 
-To add components to your app, run the following command:
+### Cài đặt dependencies
+
+Sau khi clone project về, chạy lệnh:
 
 ```bash
-npx shadcn@latest add button
+npm ci
 ```
 
-This will place the ui components in the `components` directory.
+Lệnh này cài đặt chính xác theo `package-lock.json`, đảm bảo mọi người trong team có cùng phiên bản thư viện. Nhanh hơn và tránh conflict không đáng có.
 
-## Using components
+**Khi nào dùng `npm install`?**  
+Chỉ khi bạn cần thêm/xóa/cập nhật package mới. Lệnh này sẽ thay đổi `package-lock.json`, nhớ commit cả file này lên.
 
-To use the components in your app, import them as follows:
+### Chạy development server
 
-```tsx
-import { Button } from "@/components/ui/button";
+```bash
+npm run dev
 ```
+
+Mở trình duyệt và vào `http://localhost:3000` để xem kết quả. Code thay đổi sẽ tự động reload.
+
+### Build production
+
+Khi cần deploy hoặc test bản production:
+
+```bash
+npm run build
+npm run start
+```
+
+Lệnh `build` sẽ tối ưu code, sau đó `start` chạy server production.
