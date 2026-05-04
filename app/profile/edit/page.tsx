@@ -34,7 +34,7 @@ export default function Page() {
       <AnnouncementBar />
       <Navbar />
       <main className="container mx-auto p-6">
-        <Breadcrumb className="mb-8">
+        <Breadcrumb className="mb-8 text-muted-foreground">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -58,7 +58,7 @@ export default function Page() {
         </h1>
 
         <div className="mx-auto max-w-4xl">
-          <Card>
+          <Card className="border-border bg-card/90">
             <CardContent className="p-6">
               <ProfileEditForm user={user} />
             </CardContent>
@@ -67,24 +67,19 @@ export default function Page() {
         <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
             href="/profile/measurements"
-            className="block rounded-lg border border-slate-700 bg-slate-800/50 p-4 transition-all hover:border-amber-500 hover:bg-slate-800"
+            className="block rounded-lg bg-blue-600 p-4 shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
           >
-            <h2 className="text-lg font-medium text-amber-400">
-              Quản lý số đo
-            </h2>
-            <p className="text-sm text-slate-300">
+            <h2 className="text-lg font-medium text-white">Quản lý số đo</h2>
+            <p className="text-sm text-blue-100">
               Lưu và chỉnh sửa số đo của bạn
             </p>
           </Link>
-
           <Link
             href="/profile/orders"
-            className="block rounded-lg border border-white/5 bg-slate-800/50 p-4 transition-all hover:border-[#E2FF3B] hover:bg-[#161B2C]"
+            className="block rounded-lg border border-border bg-green-600 p-4 transition-all hover:border-primary hover:bg-green-600"
           >
-            <h1 className="text-lg font-bold text-[#E2FF3B]">
-              Lịch sử mua hàng
-            </h1>
-            <p className="text-sm text-slate-300">
+            <h1 className="text-lg font-bold text-white">Lịch sử mua hàng</h1>
+            <p className="text-sm text-blue-100">
               Xem các đơn hàng trước đây của bạn
             </p>
           </Link>
