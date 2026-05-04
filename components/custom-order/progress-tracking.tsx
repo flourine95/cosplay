@@ -41,6 +41,7 @@ import { Separator } from "@/components/ui/separator"
 import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 
 const timelineSteps = [
   {
@@ -115,6 +116,8 @@ const messages = [
 ]
 
 export function ProgressTracking() {
+  const params = useParams()
+  const orderId = params.id ? `#CM-${params.id}` : "#CM-40912"
   const [revisionText, setRevisionText] = useState("")
   const [message, setMessage] = useState("")
   const progressPercent = 60
@@ -137,7 +140,7 @@ export function ProgressTracking() {
               Đặt may
             </Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="font-medium text-foreground">#CM-40912</span>
+            <span className="font-medium text-foreground">{orderId}</span>
           </div>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -185,7 +188,7 @@ export function ProgressTracking() {
               </CardHeader>
               <CardContent className="space-y-2.5 text-sm">
                 {[
-                  { label: "Mã đơn", value: "#CM-40912", cls: "" },
+                  { label: "Mã đơn", value: orderId, cls: "" },
                   {
                     label: "Ngân sách chốt",
                     value: "2,500,000 đ",
