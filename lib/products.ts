@@ -45,8 +45,8 @@ export const products: Product[] = [
     badge: "Bán chạy",
     images: [
       "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=1000&fit=crop",
     ],
     sizes: ["XS", "S", "M", "L", "XL"],
     description:
@@ -73,8 +73,8 @@ export const products: Product[] = [
     badge: "Mới",
     images: [
       "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&h=1000&fit=crop",
     ],
     sizes: ["XS", "S", "M", "L"],
     description:
@@ -101,8 +101,8 @@ export const products: Product[] = [
     badge: "Hot",
     images: [
       "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?w=800&h=1000&fit=crop",
     ],
     sizes: ["S", "M", "L", "XL", "XXL"],
     description:
@@ -129,8 +129,8 @@ export const products: Product[] = [
     badge: null,
     images: [
       "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1601814933824-fd0b574dd592?w=800&h=1000&fit=crop",
     ],
     sizes: ["XS", "S", "M", "L"],
     description:
@@ -156,8 +156,8 @@ export const products: Product[] = [
     reviewCount: 87,
     badge: "Mới",
     images: [
-      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&h=1000&fit=crop",
     ],
     sizes: ["XS", "S", "M", "L"],
     description:
@@ -183,8 +183,8 @@ export const products: Product[] = [
     reviewCount: 312,
     badge: null,
     images: [
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=800&h=1000&fit=crop",
     ],
     sizes: ["S", "M", "L", "XL"],
     description:
@@ -211,7 +211,7 @@ export const products: Product[] = [
     badge: "Hot",
     images: [
       "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&h=1000&fit=crop",
     ],
     sizes: ["S", "M", "L", "XL"],
     description:
@@ -238,7 +238,7 @@ export const products: Product[] = [
     badge: null,
     images: [
       "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=800&h=1000&fit=crop",
-      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=1000&fit=crop",
+      "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=800&h=1000&fit=crop",
     ],
     sizes: ["S", "M", "L", "XL"],
     description:

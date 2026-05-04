@@ -22,7 +22,7 @@ export const services = [
     cta: "Mua ngay",
     href: "/products",
     image:
-      "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=600&h=800&fit=crop",
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&h=800&fit=crop",
     detail: "Từ 350K",
   },
   {
@@ -33,7 +33,7 @@ export const services = [
     cta: "Xem để thuê",
     href: "/rental/1",
     image:
-      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&h=800&fit=crop",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=800&fit=crop",
     detail: "Từ 99K/ngày",
   },
   {
@@ -44,7 +44,7 @@ export const services = [
     cta: "Đặt may ngay",
     href: "/custom-order",
     image:
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=800&fit=crop",
+      "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=800&fit=crop",
     detail: "7–14 ngày",
   },
 ]
@@ -64,14 +64,14 @@ export const mobileCats = [
     count: "120+ bộ",
     href: "/products?category=game",
     image:
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=600&h=400&fit=crop",
   },
   {
     name: "Phim & Series",
     count: "90+ bộ",
     href: "/products?category=movie",
     image:
-      "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=600&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?w=600&h=400&fit=crop",
   },
   {
     name: "Fantasy & Original",
@@ -91,7 +91,7 @@ export const rentalItems = [
     price: 150000,
     available: true,
     image:
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400&h=533&fit=crop",
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=533&fit=crop",
   },
   {
     name: "Rem",
@@ -99,7 +99,7 @@ export const rentalItems = [
     price: 180000,
     available: true,
     image:
-      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&h=533&fit=crop",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=533&fit=crop",
   },
   {
     name: "Sailor Moon",
@@ -107,7 +107,7 @@ export const rentalItems = [
     price: 120000,
     available: false,
     image:
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&h=533&fit=crop",
+      "https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=400&h=533&fit=crop",
   },
   {
     name: "Batman",
@@ -115,7 +115,7 @@ export const rentalItems = [
     price: 200000,
     available: true,
     image:
-      "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=400&h=533&fit=crop",
+      "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=400&h=533&fit=crop",
   },
 ]
 
