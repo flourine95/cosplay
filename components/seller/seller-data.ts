@@ -184,8 +184,8 @@ export const tailoringOrders: TailoringOrder[] = [
       "Rộng vai": "38 cm",
     },
     references: [
-      "https://images.unsplash.com/photo-1?w=200",
-      "https://images.unsplash.com/photo-2?w=200",
+      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=400&fit=crop",
     ],
     timeline: [
       { label: "Đã nhận yêu cầu", done: true },
@@ -207,7 +207,9 @@ export const tailoringOrders: TailoringOrder[] = [
       "Cổ tay": "18 cm",
       "Chiều dài tay": "55 cm",
     },
-    references: ["https://images.unsplash.com/photo-3?w=200"],
+    references: [
+      "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=400&fit=crop",
+    ],
     timeline: [
       { label: "Đã nhận yêu cầu", done: true },
       { label: "Đã in 3D xong base", done: true },
@@ -227,7 +229,10 @@ export const tailoringOrders: TailoringOrder[] = [
       "Vòng eo": "60 cm",
       "Chiều dài váy": "90 cm",
     },
-    references: ["https://images.unsplash.com/photo-4?w=200"],
+    references: [
+      "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop",
+    ],
     timeline: [
       { label: "Đã nhận yêu cầu", done: true },
       { label: "Đã cắt vải", done: true },

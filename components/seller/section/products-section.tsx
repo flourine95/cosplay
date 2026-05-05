@@ -78,169 +78,267 @@ export function ProductsSectionNew() {
     new Set(sellerProducts.map((p) => p.status))
   )
 
+  // Calculate stats
+  const totalProducts = sellerProducts.length
+  const activeProducts = sellerProducts.filter(
+    (p) => p.status === "Hoạt động"
+  ).length
+  const totalStock = sellerProducts.reduce(
+    (sum, p) => sum + (typeof p.stock === "number" ? p.stock : 0),
+    0
+  )
+  const totalRented = sellerProducts.reduce((sum, p) => sum + p.rented, 0)
+
   return (
-    <Card className="border-border/60">
-      <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Danh sách sản phẩm</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Quản lý tồn kho, mô hình kinh doanh và trạng thái hiển thị
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Tổng sản phẩm
+            </CardTitle>
+            <div className="rounded-full bg-muted p-2">
+              <Plus className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {totalProducts}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {activeProducts} đang hoạt động
             </p>
-          </div>
-          <Button asChild>
-            <Link href="/seller/products/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Thêm sản phẩm
-            </Link>
-          </Button>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Status Filters */}
-        <div className="flex flex-wrap gap-2 pt-4">
-          <Button
-            variant={statusFilter === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setStatusFilter(null)}
-          >
-            Tất cả ({sellerProducts.length})
-          </Button>
-          {uniqueStatuses.map((status) => (
-            <Button
-              key={status}
-              variant={statusFilter === status ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter(status)}
-            >
-              {status} (
-              {sellerProducts.filter((p) => p.status === status).length})
+        <Card className="border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Tồn kho
+            </CardTitle>
+            <div className="rounded-full bg-muted p-2">
+              <Plus className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {totalStock}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sản phẩm có sẵn
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Đang cho thuê
+            </CardTitle>
+            <div className="rounded-full bg-muted p-2">
+              <Plus className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {totalRented}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sản phẩm đang thuê
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Tỷ lệ cho thuê
+            </CardTitle>
+            <div className="rounded-full bg-muted p-2">
+              <Plus className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {totalStock > 0
+                ? Math.round((totalRented / totalStock) * 100)
+                : 0}
+              %
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Hiệu suất cho thuê
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Products Table */}
+      <Card className="border-border/60">
+        <CardHeader>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Danh sách sản phẩm</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Quản lý tồn kho, mô hình kinh doanh và trạng thái hiển thị
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/seller/products/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Thêm sản phẩm
+              </Link>
             </Button>
-          ))}
-        </div>
-      </CardHeader>
+          </div>
 
-      <CardContent>
-        <div className="rounded-lg border border-border/60">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleSort("name")}
-                    className="h-8 gap-1"
-                  >
-                    Sản phẩm
-                    <ArrowUpDown className="h-3 w-3" />
-                  </Button>
-                </TableHead>
-                <TableHead>Phân loại</TableHead>
-                <TableHead className="text-center">Kho</TableHead>
-                <TableHead className="text-center">Đang thuê</TableHead>
-                <TableHead>Giá</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sorted.length === 0 ? (
+          {/* Status Filters */}
+          <div className="flex flex-wrap gap-2 pt-4">
+            <Button
+              variant={statusFilter === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter(null)}
+            >
+              Tất cả ({sellerProducts.length})
+            </Button>
+            {uniqueStatuses.map((status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(status)}
+              >
+                {status} (
+                {sellerProducts.filter((p) => p.status === status).length})
+              </Button>
+            ))}
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="rounded-lg border border-border/60">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Không tìm thấy sản phẩm nào
-                    </p>
-                  </TableCell>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSort("name")}
+                      className="h-8 gap-1"
+                    >
+                      Sản phẩm
+                      <ArrowUpDown className="h-3 w-3" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>Phân loại</TableHead>
+                  <TableHead className="text-center">Kho</TableHead>
+                  <TableHead className="text-center">Đang thuê</TableHead>
+                  <TableHead>Giá</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
-              ) : (
-                sorted.map((product) => (
-                  <TableRow key={product.sku}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-muted">
-                          <Image
-                            src={product.image}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-semibold">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            SKU: {product.sku} · {product.category}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {product.businessTypes.map((type: string) => (
-                          <Badge
-                            key={type}
-                            variant="secondary"
-                            className="text-xs"
-                          >
-                            {type}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="font-semibold">{product.stock}</span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="font-semibold text-primary">
-                        {product.rented > 0 ? product.rented : "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-medium">
-                        {product.basePrice}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{product.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/products/${product.sku}`}>
-                              Xem sản phẩm
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/seller/products/edit/${product.sku}`}>
-                              Chỉnh sửa
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteProduct(product.sku)}
-                          >
-                            Xóa sản phẩm
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              </TableHeader>
+              <TableBody>
+                {sorted.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Không tìm thấy sản phẩm nào
+                      </p>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+                ) : (
+                  sorted.map((product) => (
+                    <TableRow key={product.sku}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-muted">
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{product.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              SKU: {product.sku} · {product.category}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {product.businessTypes.map((type: string) => (
+                            <Badge
+                              key={type}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {type}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="font-semibold">{product.stock}</span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="font-semibold text-primary">
+                          {product.rented > 0 ? product.rented : "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium">
+                          {product.basePrice}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{product.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/products/${product.sku}`}>
+                                Xem sản phẩm
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/seller/products/edit/${product.sku}`}
+                              >
+                                Chỉnh sửa
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteProduct(product.sku)}
+                            >
+                              Xóa sản phẩm
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
@@ -270,6 +368,6 @@ export function ProductsSectionNew() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   )
 }
