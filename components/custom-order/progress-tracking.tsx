@@ -8,7 +8,6 @@ import {
   Send,
   Edit3,
   Image as ImageIcon,
-  ChevronRight,
   CheckCircle,
   Banknote,
   MessageCircle,
@@ -38,9 +37,16 @@ import {
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
-import Link from "next/link"
 import { useParams } from "next/navigation"
 
 const timelineSteps = [
@@ -120,6 +126,7 @@ export function ProgressTracking() {
   const orderId = params.id ? `#CM-${params.id}` : "#CM-40912"
   const [revisionText, setRevisionText] = useState("")
   const [message, setMessage] = useState("")
+  const [isSending, setIsSending] = useState(false)
   const progressPercent = 60
 
   return (
@@ -128,21 +135,23 @@ export function ProgressTracking() {
 
       <div className="border-b border-border/60 bg-muted/30">
         <div className="mx-auto max-w-6xl px-4 py-5 md:px-6">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Link href="/" className="transition-colors hover:text-foreground">
-              Trang chủ
-            </Link>
-            <ChevronRight className="h-3 w-3" />
-            <Link
-              href="/custom-order"
-              className="transition-colors hover:text-foreground"
-            >
-              Đặt may
-            </Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="font-medium text-foreground">{orderId}</span>
-          </div>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <Breadcrumb className="mb-3">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Trang chủ</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/custom-order">Đặt may</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{orderId}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight">
                 Theo dõi Tiến độ Gia công
@@ -154,8 +163,9 @@ export function ProgressTracking() {
                 </span>
               </p>
             </div>
-            <Badge className="w-fit bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
-              🔧 Đang gia công ({progressPercent}%)
+            <Badge variant="secondary" className="w-fit gap-1.5">
+              <Clock className="h-3 w-3" />
+              Đang gia công ({progressPercent}%)
             </Badge>
           </div>
           <div className="mt-4">
@@ -289,8 +299,8 @@ export function ProgressTracking() {
           </div>
 
           {/* Cột phải: Chat WIP */}
-          <div className="flex flex-col lg:col-span-2" style={{ height: 580 }}>
-            <Card className="flex flex-1 flex-col overflow-hidden border-border/60 shadow-sm">
+          <div className="flex flex-col lg:col-span-2">
+            <Card className="flex h-[580px] flex-1 flex-col overflow-hidden border-border/60 shadow-sm">
               <CardHeader className="shrink-0 border-b bg-muted/20 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -301,6 +311,7 @@ export function ProgressTracking() {
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs"
+                    disabled={messages.length === 0}
                   >
                     <Download className="h-3.5 w-3.5" />
                     Tải tất cả ảnh
@@ -310,105 +321,117 @@ export function ProgressTracking() {
 
               <CardContent className="flex-1 overflow-hidden p-0">
                 <ScrollArea className="h-full p-4">
-                  <div className="space-y-6">
-                    {messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex gap-3 ${msg.sender === "buyer" ? "flex-row-reverse" : ""}`}
-                      >
-                        <Avatar className="size-9 shrink-0">
-                          <AvatarFallback
-                            className={`text-xs ${msg.sender === "buyer" ? "bg-primary text-primary-foreground" : ""}`}
-                          >
-                            {msg.avatar}
-                          </AvatarFallback>
-                        </Avatar>
+                  {messages.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center py-12 text-center">
+                      <MessageCircle className="mb-4 h-12 w-12 text-muted-foreground/30" />
+                      <p className="text-sm font-semibold text-foreground">
+                        Chưa có tin nhắn nào
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Maker sẽ gửi cập nhật tiến độ và hình ảnh WIP tại đây
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {messages.map((msg) => (
                         <div
-                          className={`flex max-w-[75%] flex-col gap-2 ${msg.sender === "buyer" ? "items-end" : ""}`}
+                          key={msg.id}
+                          className={`flex gap-3 ${msg.sender === "buyer" ? "flex-row-reverse" : ""}`}
                         >
-                          <div
-                            className={`rounded-2xl p-3 text-sm ${
-                              msg.sender === "buyer"
-                                ? "rounded-tr-none bg-primary text-primary-foreground"
-                                : "rounded-tl-none bg-muted"
-                            }`}
-                          >
-                            <p
-                              className={`mb-1 text-xs font-semibold ${msg.sender === "buyer" ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                          <Avatar className="size-9 shrink-0">
+                            <AvatarFallback
+                              className={`text-xs ${msg.sender === "buyer" ? "bg-primary text-primary-foreground" : ""}`}
                             >
-                              {msg.name} • {msg.time}
-                            </p>
-                            {msg.text}
-                          </div>
-                          {msg.images.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {msg.images.map((img) => (
-                                <div
-                                  key={img}
-                                  className="relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-border bg-muted transition-colors hover:border-primary/50"
-                                >
-                                  <ImageIcon className="h-7 w-7 text-muted-foreground opacity-30" />
-                                  <span className="absolute right-0 bottom-1.5 left-0 mx-1 truncate rounded bg-background/80 px-1 text-center text-[10px] font-semibold">
-                                    {img}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {msg.isWip && msg.sender === "seller" && (
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-green-200 text-xs text-green-600 hover:bg-green-50 hover:text-green-700"
+                              {msg.avatar}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div
+                            className={`flex max-w-[75%] flex-col gap-2 ${msg.sender === "buyer" ? "items-end" : ""}`}
+                          >
+                            <div
+                              className={`rounded-2xl p-3 text-sm ${
+                                msg.sender === "buyer"
+                                  ? "rounded-tr-none bg-primary text-primary-foreground"
+                                  : "rounded-tl-none bg-muted"
+                              }`}
+                            >
+                              <p
+                                className={`mb-1 text-xs font-semibold ${msg.sender === "buyer" ? "text-primary-foreground/70" : "text-muted-foreground"}`}
                               >
-                                <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
-                                Duyệt tiến độ này
-                              </Button>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-destructive/30 text-xs text-destructive hover:bg-destructive/10"
-                                  >
-                                    <Edit3 className="mr-1.5 h-3.5 w-3.5" />
-                                    Yêu cầu chỉnh sửa
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      Yêu cầu Chỉnh sửa (Revisions)
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                      Ghi rõ điểm chưa ưng ý. Chỉnh sửa lớn có
-                                      thể ảnh hưởng chi phí và deadline.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <Textarea
-                                    value={revisionText}
-                                    onChange={(e) =>
-                                      setRevisionText(e.target.value)
-                                    }
-                                    placeholder="VD: Tay áo hơi ngắn, mình muốn dài qua mu bàn tay. Phần viền cổ áo dùng kim tuyến nhạt hơn..."
-                                    className="min-h-[100px] resize-none"
-                                  />
-                                  <DialogFooter>
-                                    <Button variant="ghost">Hủy</Button>
-                                    <Button className="bg-destructive text-white hover:bg-destructive/90">
-                                      <Edit3 className="mr-1.5 h-4 w-4" />
-                                      Gửi Yêu cầu Sửa
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
+                                {msg.name} • {msg.time}
+                              </p>
+                              {msg.text}
                             </div>
-                          )}
+                            {msg.images.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {msg.images.map((img) => (
+                                  <div
+                                    key={img}
+                                    className="relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-border bg-muted transition-colors hover:border-primary/50"
+                                  >
+                                    <ImageIcon className="h-7 w-7 text-muted-foreground opacity-30" />
+                                    <span className="absolute right-0 bottom-1.5 left-0 mx-1 truncate rounded bg-background/80 px-1 text-center text-[10px] font-semibold">
+                                      {img}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {msg.isWip && msg.sender === "seller" && (
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-green-200 text-xs text-green-600 hover:bg-green-50 hover:text-green-700 dark:border-green-900 dark:text-green-400 dark:hover:bg-green-950"
+                                >
+                                  <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                                  Duyệt tiến độ này
+                                </Button>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-destructive/30 text-xs text-destructive hover:bg-destructive/10"
+                                    >
+                                      <Edit3 className="mr-1.5 h-3.5 w-3.5" />
+                                      Yêu cầu chỉnh sửa
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        Yêu cầu Chỉnh sửa (Revisions)
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Ghi rõ điểm chưa ưng ý. Chỉnh sửa lớn có
+                                        thể ảnh hưởng chi phí và deadline.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <Textarea
+                                      value={revisionText}
+                                      onChange={(e) =>
+                                        setRevisionText(e.target.value)
+                                      }
+                                      placeholder="VD: Tay áo hơi ngắn, mình muốn dài qua mu bàn tay. Phần viền cổ áo dùng kim tuyến nhạt hơn..."
+                                      className="min-h-[100px] resize-none"
+                                    />
+                                    <DialogFooter>
+                                      <Button variant="ghost">Hủy</Button>
+                                      <Button className="bg-destructive text-white hover:bg-destructive/90">
+                                        <Edit3 className="mr-1.5 h-4 w-4" />
+                                        Gửi Yêu cầu Sửa
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
 
@@ -416,10 +439,14 @@ export function ProgressTracking() {
               <CardFooter className="shrink-0 p-3">
                 <form
                   className="flex w-full items-center gap-2"
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault()
                     if (message.trim()) {
+                      setIsSending(true)
+                      // Mock API call
+                      await new Promise((resolve) => setTimeout(resolve, 500))
                       setMessage("")
+                      setIsSending(false)
                     }
                   }}
                 >
@@ -428,6 +455,7 @@ export function ProgressTracking() {
                     variant="ghost"
                     size="icon"
                     className="shrink-0"
+                    disabled={isSending}
                   >
                     <ImageIcon className="h-5 w-5 text-muted-foreground" />
                   </Button>
@@ -436,12 +464,13 @@ export function ProgressTracking() {
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Nhắn tin với Maker..."
                     className="flex-1"
+                    disabled={isSending}
                   />
                   <Button
                     type="submit"
                     size="icon"
                     className="shrink-0"
-                    disabled={!message.trim()}
+                    disabled={!message.trim() || isSending}
                   >
                     <Send className="h-4 w-4" />
                   </Button>

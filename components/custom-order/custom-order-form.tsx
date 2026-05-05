@@ -74,9 +74,9 @@ import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
 
 const steps = [
-  { id: 1, label: "Gửi yêu cầu", active: true },
-  { id: 2, label: "Nhận báo giá", active: false },
-  { id: 3, label: "Cọc & Thực hiện", active: false },
+  { id: 1, label: "Bạn gửi yêu cầu", active: true },
+  { id: 2, label: "Maker báo giá", active: false },
+  { id: 3, label: "Cọc & Gia công", active: false },
   { id: 4, label: "Nghiệm thu", active: false },
 ]
 
@@ -133,7 +133,13 @@ export function CustomOrderForm() {
     // This is safe because it's in an async event handler, not during render
     // eslint-disable-next-line react-hooks/purity
     const randomId = Math.floor(10000 + Math.random() * 90000)
-    router.push(`/custom-order/${randomId}`)
+
+    // Redirect to success page with order info
+    const params = new URLSearchParams({
+      id: randomId.toString(),
+      name: encodeURIComponent(projectName),
+    })
+    router.push(`/custom-order/success?${params.toString()}`)
   }
 
   const hasFormData = () => {
@@ -255,33 +261,47 @@ export function CustomOrderForm() {
             )}
           </div>
 
-          {/* Progress steps */}
-          <div className="mt-5 flex items-center gap-0 overflow-x-auto pb-1">
-            {steps.map((step, i) => (
-              <React.Fragment key={step.id}>
-                <div
-                  className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium",
-                    step.active ? "text-primary" : "text-muted-foreground"
-                  )}
-                >
-                  <span
+          {/* Process Timeline - Not wizard steps! */}
+          <div className="mt-5">
+            <p className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Quy trình đặt may
+            </p>
+            <div className="flex flex-col gap-2 rounded-lg bg-muted/30 p-4 md:flex-row md:items-center md:gap-4">
+              {steps.map((step, i) => (
+                <React.Fragment key={step.id}>
+                  <div
                     className={cn(
-                      "flex size-5 items-center justify-center rounded-full text-xs font-bold",
+                      "flex items-center gap-2 text-xs",
                       step.active
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        ? "font-semibold text-foreground"
+                        : "text-muted-foreground"
                     )}
                   >
-                    {step.id}
-                  </span>
-                  {step.label}
-                </div>
-                {i < steps.length - 1 && (
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-border" />
-                )}
-              </React.Fragment>
-            ))}
+                    <span
+                      className={cn(
+                        "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                        step.active
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {step.id}
+                    </span>
+                    <span className="hidden sm:inline">{step.label}</span>
+                    <span className="sm:hidden">
+                      {step.label.split(" ")[0]}
+                    </span>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <ChevronRight className="hidden h-3 w-3 shrink-0 text-border md:block" />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sau khi gửi, bạn sẽ theo dõi tiến độ real-time và trao đổi với
+              Maker.
+            </p>
           </div>
         </div>
       </div>
