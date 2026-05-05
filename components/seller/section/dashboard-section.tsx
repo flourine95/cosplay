@@ -13,15 +13,15 @@ import {
 import {
   ArrowUpRight,
   TrendingUp,
-  TrendingDown,
   ShoppingBag,
   DollarSign,
-  Users,
   Clock,
   Package,
   AlertCircle,
   CheckCircle2,
   Scissors,
+  MessageSquare,
+  BarChart3,
 } from "lucide-react"
 import Link from "next/link"
 import { sellerKpis, sellerOrders } from "../seller-data"
@@ -86,7 +86,7 @@ export function DashboardSectionNew() {
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
+      {/* KPI Cards - Clean, no colors */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {sellerKpis.map((stat) => {
           const isPositive =
@@ -98,27 +98,15 @@ export function DashboardSectionNew() {
             "Tỉ lệ báo giá": Clock,
           }
           const Icon = icons[stat.label as keyof typeof icons] || ShoppingBag
-          const colors = {
-            "Đơn mới": "text-sky-600 bg-sky-500/10",
-            "Đang thuê": "text-purple-600 bg-purple-500/10",
-            "Doanh thu tháng": "text-primary bg-primary/10",
-            "Tỉ lệ báo giá": "text-emerald-600 bg-emerald-500/10",
-          }
-          const colorClass =
-            colors[stat.label as keyof typeof colors] ||
-            "text-muted-foreground bg-muted"
 
           return (
-            <Card
-              key={stat.label}
-              className="border-border/60 transition-all hover:border-primary/30 hover:shadow-sm"
-            >
+            <Card key={stat.label} className="border-border/60">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.label}
                 </CardTitle>
-                <div className={`rounded-full p-2 ${colorClass}`}>
-                  <Icon className="h-4 w-4" />
+                <div className="rounded-full bg-muted p-2">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
               <CardContent>
@@ -126,10 +114,8 @@ export function DashboardSectionNew() {
                   {stat.value}
                 </div>
                 <div className="mt-2 flex items-center gap-1 text-xs">
-                  {isPositive ? (
+                  {isPositive && (
                     <TrendingUp className="h-3 w-3 text-emerald-600" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-muted-foreground" />
                   )}
                   <span
                     className={
@@ -280,103 +266,94 @@ export function DashboardSectionNew() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="group border-border/60 transition-all hover:border-primary/30 hover:shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="rounded-full bg-primary/10 p-2">
-                <Package className="h-5 w-5 text-primary" />
-              </div>
+      {/* Quick Actions - Simplified */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Button
+          variant="outline"
+          className="h-auto flex-col items-start gap-2 p-4 hover:border-primary hover:bg-primary/5"
+          asChild
+        >
+          <Link href="/seller/products">
+            <div className="flex w-full items-center justify-between">
+              <Package className="h-5 w-5 text-muted-foreground" />
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
             </div>
-            <CardTitle className="mt-3 text-base">Quản lý sản phẩm</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Thêm, sửa, xóa sản phẩm và quản lý tồn kho
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
-              asChild
-            >
-              <Link href="/seller/products">Đi đến sản phẩm</Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="w-full text-left">
+              <p className="font-semibold text-foreground">Sản phẩm</p>
+              <p className="text-xs text-muted-foreground">Quản lý kho</p>
+            </div>
+          </Link>
+        </Button>
 
-        <Card className="group border-border/60 transition-all hover:border-primary/30 hover:shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="rounded-full bg-purple-500/10 p-2">
-                <Scissors className="h-5 w-5 text-purple-600" />
-              </div>
+        <Button
+          variant="outline"
+          className="h-auto flex-col items-start gap-2 p-4 hover:border-primary hover:bg-primary/5"
+          asChild
+        >
+          <Link href="/seller/orders">
+            <div className="flex w-full items-center justify-between">
+              <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
             </div>
-            <CardTitle className="mt-3 text-base">Quản lý đặt may</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Xử lý yêu cầu đặt may và cập nhật tiến độ
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
-              asChild
-            >
-              <Link href="/seller/tailoring">Đi đến đặt may</Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="w-full text-left">
+              <p className="font-semibold text-foreground">Đơn hàng</p>
+              <p className="text-xs text-muted-foreground">Mua & Thuê</p>
+            </div>
+          </Link>
+        </Button>
 
-        <Card className="group border-border/60 transition-all hover:border-primary/30 hover:shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="rounded-full bg-sky-500/10 p-2">
-                <Clock className="h-5 w-5 text-sky-600" />
-              </div>
+        <Button
+          variant="outline"
+          className="h-auto flex-col items-start gap-2 p-4 hover:border-primary hover:bg-primary/5"
+          asChild
+        >
+          <Link href="/seller/tailoring">
+            <div className="flex w-full items-center justify-between">
+              <Scissors className="h-5 w-5 text-muted-foreground" />
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
             </div>
-            <CardTitle className="mt-3 text-base">Lịch trình thuê</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Theo dõi lịch giao hàng và nhận trả
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
-              asChild
-            >
-              <Link href="/seller/calendar">Xem lịch trình</Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="w-full text-left">
+              <p className="font-semibold text-foreground">Đặt may</p>
+              <p className="text-xs text-muted-foreground">Yêu cầu may đo</p>
+            </div>
+          </Link>
+        </Button>
 
-        <Card className="group border-border/60 transition-all hover:border-primary/30 hover:shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="rounded-full bg-emerald-500/10 p-2">
-                <Users className="h-5 w-5 text-emerald-600" />
-              </div>
+        <Button
+          variant="outline"
+          className="h-auto flex-col items-start gap-2 p-4 hover:border-primary hover:bg-primary/5"
+          asChild
+        >
+          <Link href="/seller/messages">
+            <div className="flex w-full items-center justify-between">
+              <MessageSquare className="h-5 w-5 text-muted-foreground" />
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                3
+              </Badge>
             </div>
-            <CardTitle className="mt-3 text-base">Tin nhắn</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Trao đổi với khách hàng về đơn hàng
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
-              asChild
-            >
-              <Link href="/seller/messages">Xem tin nhắn</Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="w-full text-left">
+              <p className="font-semibold text-foreground">Tin nhắn</p>
+              <p className="text-xs text-muted-foreground">3 chưa đọc</p>
+            </div>
+          </Link>
+        </Button>
+
+        <Button
+          variant="outline"
+          className="h-auto flex-col items-start gap-2 p-4 hover:border-primary hover:bg-primary/5"
+          asChild
+        >
+          <Link href="/seller/statistics">
+            <div className="flex w-full items-center justify-between">
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="w-full text-left">
+              <p className="font-semibold text-foreground">Thống kê</p>
+              <p className="text-xs text-muted-foreground">Báo cáo</p>
+            </div>
+          </Link>
+        </Button>
       </div>
     </div>
   )
