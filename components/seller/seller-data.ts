@@ -76,7 +76,8 @@ export const sellerProducts = [
     rented: 8,
     status: "Hoạt động",
     basePrice: "Bán: 850k | Thuê: 120k/ngày",
-    image: "👗",
+    image:
+      "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=400&h=400&fit=crop",
   },
   {
     name: "Set Hầu gái phong cách Nhật",
@@ -87,7 +88,8 @@ export const sellerProducts = [
     rented: 14,
     status: "Bảo trì",
     basePrice: "Thuê: 90k/ngày",
-    image: "🎀",
+    image:
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop",
   },
   {
     name: "Áo Cosplay Chiến Binh (May theo số đo)",
@@ -98,7 +100,8 @@ export const sellerProducts = [
     rented: 0,
     status: "Hoạt động",
     basePrice: "Từ 1.200.000đ",
-    image: "⚔️",
+    image:
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=400&fit=crop",
   },
 ]
 

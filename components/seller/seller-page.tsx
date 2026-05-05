@@ -5,7 +5,7 @@ import { tailoringOrders } from "./seller-data"
 import CalendarSection from "./section/calendar-section"
 import { DashboardSectionNew } from "./section/dashboard-section"
 import OrdersSection from "./section/orders-section"
-import ProductsSection from "./section/products-section"
+import { ProductsSectionNew } from "./section/products-section"
 import RevenueSection from "./section/revenue-section"
 import StatisticsSection from "./section/statistics-section"
 import TailoringSection from "./section/tailoring-section"
@@ -48,7 +48,7 @@ export function SellerPage({ title, description, type }: SellerPageProps) {
       </section>
 
       {type === "dashboard" && <DashboardSectionNew />}
-      {type === "products" && <ProductsSection />}
+      {type === "products" && <ProductsSectionNew />}
       {type === "orders" && <OrdersSection />}
       {type === "tailoring" && <TailoringSection data={tailoringOrders} />}
       {type === "calendar" && <CalendarSection />}
