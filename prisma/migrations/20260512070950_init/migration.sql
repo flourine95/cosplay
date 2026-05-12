@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'SELLER', 'ADMIN');
 
@@ -26,7 +23,19 @@ CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'FAILED', 'REFUNDED', 'P
 CREATE TYPE "PaymentMethod" AS ENUM ('COD', 'BANK_TRANSFER', 'MOMO', 'VNPAY', 'ZALOPAY', 'CREDIT_CARD');
 
 -- CreateEnum
+CREATE TYPE "EscrowStatus" AS ENUM ('HOLDING', 'RELEASED', 'REFUNDED');
+
+-- CreateEnum
+CREATE TYPE "ReturnStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'SHIPPING_BACK', 'RECEIVED', 'REFUNDED', 'CLOSED');
+
+-- CreateEnum
+CREATE TYPE "ReturnReason" AS ENUM ('WRONG_ITEM', 'DAMAGED', 'NOT_AS_DESCRIBED', 'MISSING_PARTS', 'OTHER');
+
+-- CreateEnum
 CREATE TYPE "PaymentType" AS ENUM ('ORDER', 'CUSTOM_DEPOSIT', 'CUSTOM_FINAL', 'RENTAL_DEPOSIT', 'RENTAL_FEE');
+
+-- CreateEnum
+CREATE TYPE "PayoutStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
 
 -- CreateEnum
 CREATE TYPE "CustomOrderStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'QUOTED', 'QUOTE_ACCEPTED', 'DEPOSIT_PAID', 'IN_PROGRESS', 'REVISION_REQUESTED', 'READY', 'COMPLETED', 'CANCELLED');
@@ -52,10 +61,7 @@ CREATE TABLE "User" (
     "status" "UserStatus" NOT NULL DEFAULT 'PENDING_VERIFICATION',
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "emailVerifiedAt" TIMESTAMP(3),
-    "address" TEXT,
-    "city" TEXT,
-    "district" TEXT,
-    "ward" TEXT,
+    "savedAddresses" JSONB NOT NULL DEFAULT '[]',
     "shopName" TEXT,
     "shopDescription" TEXT,
     "shopLogo" TEXT,
@@ -115,16 +121,11 @@ CREATE TABLE "Product" (
     "slug" TEXT NOT NULL,
     "description" TEXT,
     "shortDescription" TEXT,
-    "price" DECIMAL(10,2) NOT NULL,
-    "comparePrice" DECIMAL(10,2),
-    "stock" INTEGER NOT NULL DEFAULT 0,
+    "price" DECIMAL(15,2) NOT NULL,
+    "comparePrice" DECIMAL(15,2),
     "sku" TEXT,
     "type" "ProductType" NOT NULL DEFAULT 'SALE',
     "status" "ProductStatus" NOT NULL DEFAULT 'DRAFT',
-    "rentalPricePerDay" DECIMAL(10,2),
-    "depositAmount" DECIMAL(10,2),
-    "minRentalDays" INTEGER DEFAULT 1,
-    "maxRentalDays" INTEGER,
     "metaTitle" TEXT,
     "metaDescription" TEXT,
     "tags" TEXT[],
@@ -158,9 +159,10 @@ CREATE TABLE "ProductVariant" (
     "productId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "sku" TEXT,
-    "price" DECIMAL(10,2),
+    "price" DECIMAL(15,2),
     "stock" INTEGER NOT NULL DEFAULT 0,
     "attributes" JSONB NOT NULL,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -172,7 +174,7 @@ CREATE TABLE "CartItem" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "productId" INTEGER NOT NULL,
-    "variantId" INTEGER,
+    "variantId" INTEGER NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 1,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -193,16 +195,20 @@ CREATE TABLE "Order" (
     "shippingDistrict" TEXT NOT NULL,
     "shippingWard" TEXT NOT NULL,
     "shippingNote" TEXT,
-    "subtotal" DECIMAL(10,2) NOT NULL,
-    "shippingFee" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "discount" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "tax" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "total" DECIMAL(10,2) NOT NULL,
+    "subtotal" DECIMAL(15,2) NOT NULL,
+    "shippingFee" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "discount" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "tax" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "total" DECIMAL(15,2) NOT NULL,
     "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
     "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
     "paymentMethod" "PaymentMethod" NOT NULL,
+    "escrowStatus" "EscrowStatus" NOT NULL DEFAULT 'HOLDING',
+    "payoutId" INTEGER,
     "customerNote" TEXT,
     "adminNote" TEXT,
+    "trackingCode" TEXT,
+    "shippingCarrier" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "confirmedAt" TIMESTAMP(3),
@@ -222,9 +228,9 @@ CREATE TABLE "OrderItem" (
     "variantId" INTEGER,
     "productName" TEXT NOT NULL,
     "variantName" TEXT,
-    "price" DECIMAL(10,2) NOT NULL,
+    "price" DECIMAL(15,2) NOT NULL,
     "quantity" INTEGER NOT NULL,
-    "subtotal" DECIMAL(10,2) NOT NULL,
+    "subtotal" DECIMAL(15,2) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
@@ -243,12 +249,35 @@ CREATE TABLE "OrderStatusHistory" (
 );
 
 -- CreateTable
+CREATE TABLE "ReturnRequest" (
+    "id" SERIAL NOT NULL,
+    "orderId" INTEGER NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "reason" "ReturnReason" NOT NULL,
+    "description" TEXT NOT NULL,
+    "images" TEXT[],
+    "videos" TEXT[],
+    "status" "ReturnStatus" NOT NULL DEFAULT 'PENDING',
+    "trackingCode" TEXT,
+    "shippingCarrier" TEXT DEFAULT 'GHTK',
+    "sellerNote" TEXT,
+    "adminNote" TEXT,
+    "refundAmount" DECIMAL(15,2),
+    "refundedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "resolvedAt" TIMESTAMP(3),
+
+    CONSTRAINT "ReturnRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Payment" (
     "id" SERIAL NOT NULL,
     "orderId" INTEGER,
     "customOrderId" INTEGER,
     "rentalOrderId" INTEGER,
-    "amount" DECIMAL(10,2) NOT NULL,
+    "amount" DECIMAL(15,2) NOT NULL,
     "paymentMethod" "PaymentMethod" NOT NULL,
     "paymentType" "PaymentType" NOT NULL,
     "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
@@ -262,15 +291,37 @@ CREATE TABLE "Payment" (
 );
 
 -- CreateTable
+CREATE TABLE "SellerPayout" (
+    "id" SERIAL NOT NULL,
+    "sellerId" INTEGER NOT NULL,
+    "amount" DECIMAL(15,2) NOT NULL,
+    "platformFee" DECIMAL(15,2) NOT NULL,
+    "netAmount" DECIMAL(15,2) NOT NULL,
+    "status" "PayoutStatus" NOT NULL DEFAULT 'PENDING',
+    "bankName" TEXT,
+    "bankAccount" TEXT,
+    "bankAccountName" TEXT,
+    "transferNote" TEXT,
+    "transferProof" TEXT,
+    "processedBy" INTEGER,
+    "processedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SellerPayout_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Review" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "productId" INTEGER NOT NULL,
-    "orderId" INTEGER,
+    "orderItemId" INTEGER,
     "rating" INTEGER NOT NULL,
     "title" TEXT,
     "content" TEXT NOT NULL,
     "images" TEXT[],
+    "videos" TEXT[],
     "sellerReply" TEXT,
     "repliedAt" TIMESTAMP(3),
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
@@ -333,10 +384,14 @@ CREATE TABLE "CustomOrder" (
     "specialRequests" TEXT,
     "deadline" TIMESTAMP(3),
     "status" "CustomOrderStatus" NOT NULL DEFAULT 'DRAFT',
-    "estimatedPrice" DECIMAL(10,2),
-    "depositAmount" DECIMAL(10,2),
-    "finalAmount" DECIMAL(10,2),
-    "totalPaid" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "estimatedPrice" DECIMAL(15,2),
+    "depositAmount" DECIMAL(15,2),
+    "finalAmount" DECIMAL(15,2),
+    "totalPaid" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "shippingFee" DECIMAL(15,2),
+    "trackingCode" TEXT,
+    "shippingCarrier" TEXT,
+    "actualWeight" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "submittedAt" TIMESTAMP(3),
@@ -351,8 +406,8 @@ CREATE TABLE "CustomOrderQuote" (
     "id" SERIAL NOT NULL,
     "customOrderId" INTEGER NOT NULL,
     "sellerId" INTEGER NOT NULL,
-    "quotedPrice" DECIMAL(10,2) NOT NULL,
-    "depositAmount" DECIMAL(10,2) NOT NULL,
+    "quotedPrice" DECIMAL(15,2) NOT NULL,
+    "depositAmount" DECIMAL(15,2) NOT NULL,
     "estimatedDays" INTEGER NOT NULL,
     "description" TEXT,
     "isAccepted" BOOLEAN NOT NULL DEFAULT false,
@@ -370,6 +425,7 @@ CREATE TABLE "CustomOrderProgress" (
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "images" TEXT[],
+    "videos" TEXT[],
     "progressPercent" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -382,6 +438,7 @@ CREATE TABLE "CustomOrderRevision" (
     "customOrderId" INTEGER NOT NULL,
     "description" TEXT NOT NULL,
     "images" TEXT[],
+    "videos" TEXT[],
     "sellerResponse" TEXT,
     "respondedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -394,13 +451,12 @@ CREATE TABLE "RentalItem" (
     "id" SERIAL NOT NULL,
     "productId" INTEGER NOT NULL,
     "sellerId" INTEGER NOT NULL,
-    "pricePerDay" DECIMAL(10,2) NOT NULL,
-    "depositAmount" DECIMAL(10,2) NOT NULL,
+    "pricePerDay" DECIMAL(15,2) NOT NULL,
+    "depositAmount" DECIMAL(15,2) NOT NULL,
     "minDays" INTEGER NOT NULL DEFAULT 1,
     "maxDays" INTEGER,
     "condition" "RentalItemCondition" NOT NULL DEFAULT 'EXCELLENT',
     "isAvailable" BOOLEAN NOT NULL DEFAULT true,
-    "unavailableDates" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -416,20 +472,23 @@ CREATE TABLE "RentalOrder" (
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
     "actualReturnDate" TIMESTAMP(3),
-    "pricePerDay" DECIMAL(10,2) NOT NULL,
+    "pricePerDay" DECIMAL(15,2) NOT NULL,
     "totalDays" INTEGER NOT NULL,
-    "rentalFee" DECIMAL(10,2) NOT NULL,
-    "depositAmount" DECIMAL(10,2) NOT NULL,
-    "lateFee" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "damageFee" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "refundAmount" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "rentalFee" DECIMAL(15,2) NOT NULL,
+    "depositAmount" DECIMAL(15,2) NOT NULL,
+    "lateFee" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "damageFee" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "refundAmount" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "status" "RentalStatus" NOT NULL DEFAULT 'PENDING',
     "conditionAtPickup" "RentalItemCondition",
-    "conditionAtReturn" "RentalItemCondition",
     "pickupNotes" TEXT,
+    "pickupImages" TEXT[],
+    "pickupVideos" TEXT[],
+    "conditionAtReturn" "RentalItemCondition",
     "returnNotes" TEXT,
+    "returnImages" TEXT[],
+    "returnVideos" TEXT[],
     "damageDescription" TEXT,
-    "damageImages" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "confirmedAt" TIMESTAMP(3),
@@ -462,7 +521,7 @@ CREATE TABLE "SystemFee" (
     "name" TEXT NOT NULL,
     "description" TEXT,
     "feeType" TEXT NOT NULL,
-    "feeValue" DECIMAL(10,2) NOT NULL,
+    "feeValue" DECIMAL(10,4) NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -483,7 +542,7 @@ CREATE TABLE "SystemSetting" (
 
 -- CreateTable
 CREATE TABLE "Conversation" (
-    "id" SERIAL NOT NULL,
+    "id" TEXT NOT NULL,
     "user1Id" INTEGER NOT NULL,
     "user2Id" INTEGER NOT NULL,
     "orderId" INTEGER,
@@ -498,8 +557,8 @@ CREATE TABLE "Conversation" (
 
 -- CreateTable
 CREATE TABLE "Message" (
-    "id" SERIAL NOT NULL,
-    "conversationId" INTEGER NOT NULL,
+    "id" TEXT NOT NULL,
+    "conversationId" TEXT NOT NULL,
     "senderId" INTEGER NOT NULL,
     "content" TEXT NOT NULL,
     "attachments" TEXT[],
@@ -598,10 +657,22 @@ CREATE INDEX "Order_orderNumber_idx" ON "Order"("orderNumber");
 CREATE INDEX "Order_status_idx" ON "Order"("status");
 
 -- CreateIndex
+CREATE INDEX "Order_escrowStatus_idx" ON "Order"("escrowStatus");
+
+-- CreateIndex
 CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
 
 -- CreateIndex
 CREATE INDEX "OrderStatusHistory_orderId_idx" ON "OrderStatusHistory"("orderId");
+
+-- CreateIndex
+CREATE INDEX "ReturnRequest_orderId_idx" ON "ReturnRequest"("orderId");
+
+-- CreateIndex
+CREATE INDEX "ReturnRequest_userId_idx" ON "ReturnRequest"("userId");
+
+-- CreateIndex
+CREATE INDEX "ReturnRequest_status_idx" ON "ReturnRequest"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Payment_transactionId_key" ON "Payment"("transactionId");
@@ -619,13 +690,19 @@ CREATE INDEX "Payment_rentalOrderId_idx" ON "Payment"("rentalOrderId");
 CREATE INDEX "Payment_transactionId_idx" ON "Payment"("transactionId");
 
 -- CreateIndex
+CREATE INDEX "SellerPayout_sellerId_idx" ON "SellerPayout"("sellerId");
+
+-- CreateIndex
+CREATE INDEX "SellerPayout_status_idx" ON "SellerPayout"("status");
+
+-- CreateIndex
 CREATE INDEX "Review_userId_idx" ON "Review"("userId");
 
 -- CreateIndex
 CREATE INDEX "Review_productId_idx" ON "Review"("productId");
 
 -- CreateIndex
-CREATE INDEX "Review_orderId_idx" ON "Review"("orderId");
+CREATE INDEX "Review_orderItemId_idx" ON "Review"("orderItemId");
 
 -- CreateIndex
 CREATE INDEX "Review_rating_idx" ON "Review"("rating");
@@ -778,6 +855,9 @@ ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") RE
 ALTER TABLE "Order" ADD CONSTRAINT "Order_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_payoutId_fkey" FOREIGN KEY ("payoutId") REFERENCES "SellerPayout"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -790,6 +870,9 @@ ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_variantId_fkey" FOREIGN KEY ("
 ALTER TABLE "OrderStatusHistory" ADD CONSTRAINT "OrderStatusHistory_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "ReturnRequest" ADD CONSTRAINT "ReturnRequest_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -799,13 +882,16 @@ ALTER TABLE "Payment" ADD CONSTRAINT "Payment_customOrderId_fkey" FOREIGN KEY ("
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_rentalOrderId_fkey" FOREIGN KEY ("rentalOrderId") REFERENCES "RentalOrder"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "SellerPayout" ADD CONSTRAINT "SellerPayout_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Review" ADD CONSTRAINT "Review_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Review" ADD CONSTRAINT "Review_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Review" ADD CONSTRAINT "Review_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Review" ADD CONSTRAINT "Review_orderItemId_fkey" FOREIGN KEY ("orderItemId") REFERENCES "OrderItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Comment" ADD CONSTRAINT "Comment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
