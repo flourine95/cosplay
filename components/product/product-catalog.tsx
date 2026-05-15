@@ -201,7 +201,7 @@ function FilterSidebar({
           </p>
           <span className="text-xs font-medium text-foreground">
             {Math.round(priceMin / 1000)}K –{" "}
-            {priceMax >= 2000000 ? "2.000K" : Math.round(priceMax / 1000) + "K"}
+            {priceMax >= 2000000 ? "2.000K" : `${Math.round(priceMax / 1000)}K`}
           </span>
         </div>
         <Slider

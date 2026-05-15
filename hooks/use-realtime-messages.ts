@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
+import { useEffect, useState } from "react"
 
 interface Message {
   id: string
@@ -36,7 +36,6 @@ export function useRealtimeMessages(conversationId: string) {
           filter: `conversationId=eq.${conversationId}`,
         },
         (payload) => {
-          console.log("New message received:", payload.new)
           setMessages((prev) => [...prev, payload.new as Message])
         }
       )
@@ -49,7 +48,6 @@ export function useRealtimeMessages(conversationId: string) {
           filter: `conversationId=eq.${conversationId}`,
         },
         (payload) => {
-          console.log("Message updated:", payload.new)
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === payload.new.id ? (payload.new as Message) : msg

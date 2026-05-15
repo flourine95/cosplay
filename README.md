@@ -1,205 +1,66 @@
-# Cosplay Platform
+# Cosplay Marketplace
 
-E-commerce platform chuyên về trang phục và phụ kiện cosplay, hỗ trợ bán lẻ, cho thuê và đặt may theo yêu cầu.
+Nền tảng thương mại điện tử chuyên về trang phục cosplay.
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router, Turbopack)
-- **Database**: PostgreSQL (Supabase Local)
-- **ORM**: Prisma 7.8
-- **Realtime**: Supabase Realtime
-- **UI**: React 19, Tailwind CSS 4, shadcn/ui
-- **State**: Zustand, React Query
+- **Frontend:** Next.js 16, React 19, TypeScript
+- **Styling:** Tailwind CSS 4, shadcn/ui
+- **Database:** PostgreSQL (Supabase Local)
+- **ORM:** Prisma 7
+- **Auth & Storage:** Supabase
+- **State Management:** Zustand, React Query
+- **Forms:** React Hook Form, Zod
 
-## Prerequisites
+## Cài đặt
 
-- Node.js 18+
-- Docker Desktop (cho Supabase Local)
-- Git
+### Yêu cầu
 
-## Quick Start
+- Node.js >= 18
+- Docker Desktop
+- Supabase CLI: `npm install -g supabase` ([docs](https://supabase.com/docs/guides/local-development))
 
-### 1. Clone và cài đặt dependencies
+### Setup
 
 ```bash
+# 1. Clone repo
 git clone https://github.com/flourine95/cosplay
 cd cosplay
+
+# 2. Install dependencies
 npm ci
-```
 
-### 2. Setup database
-
-```bash
+# 3. Copy .env
 cp .env.example .env
+
+# 4. Start Supabase local
 npm run db:start
-npx prisma migrate dev --name init
-```
 
-Lần đầu `db:start` mất 5-10 phút để pull Docker images.
+# 5. Chạy Prisma migrations (tạo bảng)
+npm run db:migrate
 
-### 3. Chạy development server
+# 6. Seed dữ liệu mẫu
+npm run db:seed
 
-```bash
+# 7. Start dev server
 npm run dev
 ```
 
 Mở http://localhost:3000
 
-### 4. Verify setup
+## Tài khoản demo
 
-- Database: http://localhost:3000/api/test-db
-- Supabase Studio: http://127.0.0.1:54323
-
-## Available Scripts
-
-### Development
-
-```bash
-npm run dev          # Start dev server với Turbopack
-npm run build        # Build production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run lint:fix     # Fix ESLint errors
-npm run format       # Format code với Prettier
-npm run typecheck    # Check TypeScript types
-```
-
-### Database
-
-```bash
-npm run db:start     # Khởi động Supabase Local
-npm run db:stop      # Dừng Supabase
-npm run db:status    # Xem status và connection strings
-npm run db:reset     # Reset database (xóa data)
-npm run db:migrate   # Tạo migration mới
-npm run db:push      # Push schema nhanh (no migration)
-npm run db:generate  # Generate Prisma Client
-npm run db:studio    # Mở Prisma Studio GUI
-```
-
-## Project Structure
-
-```
-cosplay/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   ├── (routes)/          # Page routes
-│   └── layout.tsx         # Root layout
-├── components/            # React components
-├── hooks/                 # Custom React hooks
-├── lib/                   # Utilities
-│   ├── prisma.ts         # Prisma client
-│   └── supabase/         # Supabase clients
-├── prisma/
-│   ├── schema.prisma     # Database schema
-│   └── migrations/       # Migration history
-├── docs/                  # Documentation
-└── supabase/             # Supabase config
-```
+| Role     | Email               | Password        |
+| -------- | ------------------- | --------------- |
+| Admin    | admin@cosplay.vn    | Admin@123456    |
+| Seller   | seller@cosplay.vn   | Seller@123456   |
+| Customer | customer@cosplay.vn | Customer@123456 |
 
 ## Documentation
 
-- [Business Flows & Schema Logic](docs/BUSINESS_FLOWS.md)
-- [Database Guide](docs/DATABASE_GUIDE.md)
-- [Product & Design Principles](docs/PRODUCT.md)
-
-## Environment Variables
-
-Copy file mẫu:
-
-```bash
-cp .env.example .env
-```
-
-Các key Supabase được tự động sinh sau `npm run db:start`.
-
-## Database Workflow
-
-### Thêm/sửa schema
-
-1. Sửa `prisma/schema.prisma`
-2. Tạo migration:
-   ```bash
-   npx prisma migrate dev --name ten_migration
-   ```
-3. Restart dev server
-
-### Reset database
-
-```bash
-npm run db:reset
-```
-
-Xóa toàn bộ data và apply lại tất cả migrations.
-
-### Xem database
-
-- Prisma Studio: `npm run db:studio`
-- Supabase Studio: http://127.0.0.1:54323
-
-Chi tiết: [Database Guide](docs/DATABASE_GUIDE.md)
-
-## Troubleshooting
-
-### Docker không chạy
-
-```bash
-docker --version
-# Nếu lỗi: Mở Docker Desktop và đợi khởi động xong
-```
-
-### Supabase không start
-
-```bash
-npm run db:stop
-npm run db:start
-```
-
-### Prisma types lỗi
-
-```bash
-npx prisma generate
-# Restart dev server
-```
-
-### Port bị chiếm
-
-Supabase sử dụng các ports:
-
-- 54321: API
-- 54322: PostgreSQL
-- 54323: Studio
-
-Đổi port trong `supabase/config.toml` nếu conflict.
-
-## Git Workflow
-
-### Commit conventions
-
-```bash
-feat: thêm tính năng mới
-fix: sửa bug
-chore: cập nhật config, dependencies
-docs: cập nhật documentation
-refactor: refactor code
-```
-
-### Pre-commit hooks
-
-Husky tự động chạy:
-
-- ESLint (fix errors)
-- Prettier (format code)
-
-Nếu có lỗi, commit sẽ bị reject. Fix lỗi rồi commit lại.
-
-## Contributing
-
-1. Tạo branch mới từ `main`
-2. Commit changes
-3. Push và tạo Pull Request
-4. Đợi review
-
-## License
-
-Private project
+- [Setup Guide](docs/SETUP.md) - Hướng dẫn cài đặt chi tiết
+- [Code Conventions](docs/CONVENTIONS.md) - Quy ước code và naming
+- [Common Patterns](docs/PATTERNS.md) - Patterns và examples thường dùng
+- [Code Standards](docs/CODE_STANDARDS.md) - Chuẩn code hiện đại
+- [Business Flows](docs/BUSINESS_FLOWS.md) - Luồng nghiệp vụ
+- [Database Guide](docs/DATABASE_GUIDE.md) - Hướng dẫn database

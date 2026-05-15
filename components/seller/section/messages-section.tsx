@@ -1,26 +1,26 @@
 "use client"
 
-import { useState } from "react"
-import {
-  Search,
-  Send,
-  Paperclip,
-  MoreVertical,
-  Archive,
-  Trash2,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Archive,
+  MoreVertical,
+  Paperclip,
+  Search,
+  Send,
+  Trash2,
+} from "lucide-react"
+import { useState } from "react"
 import {
   conversations,
   messagesByConversation,
@@ -44,7 +44,6 @@ export function MessagesSectionNew() {
   const handleSendMessage = () => {
     if (messageInput.trim()) {
       // Mock sending - in real app would call API
-      console.log("Sending message:", messageInput)
       setMessageInput("")
     }
   }

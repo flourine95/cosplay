@@ -1,28 +1,5 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Plus, ArrowUpDown, MoreHorizontal } from "lucide-react"
-import { sellerProducts } from "../seller-data"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +10,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { ArrowUpDown, MoreHorizontal, Plus } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { useMemo, useState } from "react"
+import { sellerProducts } from "../seller-data"
 
 type SortType = "none" | "asc" | "desc"
 
@@ -359,7 +359,6 @@ export function ProductsSectionNew() {
               className="bg-destructive text-white hover:bg-destructive/90"
               onClick={() => {
                 // Handle delete logic here
-                console.log("Deleting product:", deleteProduct)
                 setDeleteProduct(null)
               }}
             >
