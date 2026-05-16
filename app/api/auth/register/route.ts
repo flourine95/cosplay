@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { hashPassword, createSession, sanitizeUser } from "@/lib/auth"
-import { UserRole, UserStatus } from "@/app/generated/prisma/enums"
+import {
+  SellerStatus,
+  UserRole,
+  UserStatus,
+} from "@/app/generated/prisma/enums"
 import { registerSchema } from "@/schemas/auth"
 
 export async function POST(request: NextRequest) {
@@ -16,7 +20,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, email, password } = parsed.data
+    const { name, email, password, role } = parsed.data
+    const userRole = role === "SELLER" ? UserRole.SELLER : UserRole.CUSTOMER
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
@@ -31,9 +36,11 @@ export async function POST(request: NextRequest) {
         name,
         email,
         password: await hashPassword(password),
-        role: UserRole.CUSTOMER,
+        role: userRole,
         status: UserStatus.ACTIVE,
         emailVerified: false,
+        sellerStatus:
+          userRole === UserRole.SELLER ? SellerStatus.PENDING : undefined,
       },
     })
 

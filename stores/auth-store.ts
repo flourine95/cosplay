@@ -12,7 +12,10 @@ interface AuthStore {
   register: (
     name: string,
     email: string,
-    password: string
+    password: string,
+    confirmPassword: string,
+    agreed: boolean,
+    role?: "CUSTOMER" | "SELLER"
   ) => Promise<{ error?: string }>
   logout: () => Promise<void>
   refresh: () => Promise<void>
@@ -51,11 +54,25 @@ export const useAuth = create<AuthStore>()((set) => ({
     return {}
   },
 
-  register: async (name, email, password) => {
+  register: async (
+    name,
+    email,
+    password,
+    confirmPassword,
+    agreed,
+    role = "CUSTOMER"
+  ) => {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        confirmPassword,
+        agreed,
+        role,
+      }),
     })
     const data = await res.json()
     if (!res.ok) return { error: data.error }

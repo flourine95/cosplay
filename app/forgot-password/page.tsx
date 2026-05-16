@@ -2,11 +2,16 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { ArrowRight, Mail, ShieldAlert, CheckCircle2 } from "lucide-react"
+import { AlertCircle, ArrowRight, CheckCircle2, Mail } from "lucide-react"
 
 import { AuthShell } from "@/components/auth/auth-shell"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
 
 export default function ForgotPasswordPage() {
@@ -41,19 +46,33 @@ export default function ForgotPasswordPage() {
     <AuthShell
       title="Quên mật khẩu"
       description="Nhập email của bạn, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu trong vài phút."
-      imageSrc="https://upload.wikimedia.org/wikipedia/commons/1/10/Cerisier_du_Japon_Prunus_serrulata.jpg"
-      imageAlt="Không gian hậu trường chụp ảnh thời trang"
+      imageSrc="/auth-bg.jpg"
+      imageAlt="Không gian hậu trường chuẩn bị trang phục cosplay"
       imageLabel="Khôi phục tài khoản"
-      imageTitle="Lấy lại quyền truy cập."
-      stats={[
-        { value: "3 phút", label: "gửi mail" },
-        { value: "Bảo mật", label: "xác minh" },
+      imageTitle="Lấy lại quyền truy cập mà không mất lịch thuê hay đơn may."
+      trustItems={[
+        {
+          label: "Giữ lịch thuê",
+          description: "Lấy lại tài khoản để tiếp tục theo dõi ngày thuê.",
+        },
+        {
+          label: "Không mất đơn",
+          description: "Các đơn mua và đặt may vẫn nằm trong hồ sơ của bạn.",
+        },
+        {
+          label: "Link một lần",
+          description: "Liên kết đặt lại được giới hạn thời gian sử dụng.",
+        },
+        {
+          label: "Quay lại nhanh",
+          description: "Sau khi đổi mật khẩu, bạn có thể tiếp tục luồng cũ.",
+        },
       ]}
     >
       {sent ? (
         <div className="space-y-5">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-green-200 bg-green-50 px-6 py-8 text-center dark:border-green-900 dark:bg-green-950/20">
-            <CheckCircle2 className="size-10 text-green-600" />
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/20 bg-brand-subtle px-6 py-8 text-center">
+            <CheckCircle2 className="size-10 text-primary" />
             <div>
               <p className="font-semibold text-foreground">Đã gửi email!</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -62,48 +81,41 @@ export default function ForgotPasswordPage() {
               </p>
             </div>
           </div>
-          <Link
-            href="/login"
-            className="block text-center text-sm font-medium text-primary hover:text-primary/80"
-          >
-            Quay lại đăng nhập
-          </Link>
+          <Button asChild className="h-11 w-full rounded-full">
+            <Link href="/login">Quay lại đăng nhập</Link>
+          </Button>
         </div>
       ) : (
         <form className="space-y-5" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
+            <Alert variant="destructive" className="rounded-xl">
+              <AlertCircle />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-            <div className="flex items-start gap-3">
-              <ShieldAlert className="mt-0.5 size-4 shrink-0 text-primary" />
-              <p>
-                Chúng tôi chỉ cần email đã dùng để đăng ký. Nếu không thấy thư,
-                hãy kiểm tra mục spam hoặc thử lại sau vài phút.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="forgot-email" className="text-sm text-foreground">
-              Email
+              Email đã đăng ký
             </Label>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+            <InputGroup className="h-11 rounded-xl bg-background">
+              <InputGroupAddon>
+                <Mail />
+              </InputGroupAddon>
+              <InputGroupInput
                 id="forgot-email"
                 type="email"
                 placeholder="ban@cosplay.vn"
-                className="h-11 rounded-xl pl-10"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoFocus
                 autoComplete="email"
               />
-            </div>
+            </InputGroup>
+            <p className="text-xs text-muted-foreground">
+              Không thấy thư? Kiểm tra mục spam hoặc thử lại sau vài phút.
+            </p>
           </div>
 
           <Button
@@ -115,7 +127,7 @@ export default function ForgotPasswordPage() {
             {!isLoading && <ArrowRight data-icon="inline-end" />}
           </Button>
 
-          <div className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center justify-between gap-3 pt-1 text-sm">
             <Link
               href="/login"
               className="font-medium text-primary hover:text-primary/80"

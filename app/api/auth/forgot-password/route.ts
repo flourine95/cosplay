@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
       data: { userId: user.id, token, expiresAt },
     })
 
-    // TODO: Gửi email với link: /reset-password?token={token}
+    // TODO: Gửi email với link: /change-password?token={token}
     console.warn(
-      `[DEV] Reset link: ${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`
+      `[DEV] Reset link: ${process.env.NEXT_PUBLIC_APP_URL}/change-password?token=${token}`
     )
 
     return NextResponse.json({ success: true })
