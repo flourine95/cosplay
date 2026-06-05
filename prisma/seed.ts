@@ -10,6 +10,7 @@ import {
   UserStatus,
 } from "@/app/generated/prisma/enums"
 import "dotenv/config"
+import { products as mockProducts } from "../lib/products"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
@@ -147,120 +148,20 @@ const categories = [
   },
 ]
 
-type ProductTemplate = {
-  name: string
-  slug: string
-  description: string
-  shortDescription: string
-  price: number
-  comparePrice: number
-  sku: string
-  categorySlug: string
-  status: ProductStatus
-  type: ProductType
-  tags: string[]
-  rating: number
-  reviewCount: number
-  viewCount: number
-  soldCount: number
-  publishedAt: Date
+function getCategorySlug(category: string): string {
+  switch (category) {
+    case "Anime":
+      return "anime-manga"
+    case "Game":
+      return "game"
+    case "Phim & Series":
+      return "movie-tv"
+    case "Fantasy & Original":
+      return "original-character"
+    default:
+      return "anime-manga"
+  }
 }
-
-const products: ProductTemplate[] = [
-  {
-    name: "Trang phục Naruto Uzumaki - Hokage",
-    slug: "naruto-uzumaki-hokage",
-    description:
-      "Bộ trang phục Hokage đệ thất Naruto Uzumaki, chất liệu cao cấp",
-    shortDescription: "Bộ trang phục Hokage Naruto chất lượng cao",
-    price: 1500000,
-    comparePrice: 2000000,
-    sku: "NAR-HOK-001",
-    categorySlug: "anime-manga",
-    status: ProductStatus.ACTIVE,
-    type: ProductType.BOTH,
-    tags: ["naruto", "hokage", "anime"],
-    rating: 4.9,
-    reviewCount: 45,
-    viewCount: 1234,
-    soldCount: 89,
-    publishedAt: new Date(),
-  },
-  {
-    name: "Trang phục Genshin Impact - Raiden Shogun",
-    slug: "genshin-raiden-shogun",
-    description: "Bộ trang phục Raiden Shogun từ Genshin Impact",
-    shortDescription: "Bộ trang phục Raiden Shogun đầy đủ",
-    price: 2500000,
-    comparePrice: 3200000,
-    sku: "GEN-RAI-001",
-    categorySlug: "game",
-    status: ProductStatus.ACTIVE,
-    type: ProductType.SALE,
-    tags: ["genshin", "raiden", "game"],
-    rating: 4.8,
-    reviewCount: 67,
-    viewCount: 2345,
-    soldCount: 123,
-    publishedAt: new Date(),
-  },
-  {
-    name: "Trang phục Demon Slayer - Tanjiro Kamado",
-    slug: "demon-slayer-tanjiro",
-    description: "Bộ trang phục Tanjiro Kamado từ Kimetsu no Yaiba",
-    shortDescription: "Bộ trang phục Tanjiro Kamado",
-    price: 1800000,
-    comparePrice: 2400000,
-    sku: "DEM-TAN-001",
-    categorySlug: "anime-manga",
-    status: ProductStatus.ACTIVE,
-    type: ProductType.RENTAL,
-    tags: ["demon slayer", "tanjiro", "anime"],
-    rating: 4.7,
-    reviewCount: 34,
-    viewCount: 987,
-    soldCount: 56,
-    publishedAt: new Date(),
-  },
-  {
-    name: "Tóc giả Anime - Nhiều màu",
-    slug: "toc-gia-anime",
-    description: "Tóc giả cosplay chất lượng cao",
-    shortDescription: "Tóc giả cosplay đa dạng",
-    price: 350000,
-    comparePrice: 500000,
-    sku: "ACC-WIG-001",
-    categorySlug: "phu-kien",
-    status: ProductStatus.ACTIVE,
-    type: ProductType.SALE,
-    tags: ["wig", "tóc giả", "phụ kiện"],
-    rating: 4.6,
-    reviewCount: 89,
-    viewCount: 3456,
-    soldCount: 234,
-    publishedAt: new Date(),
-  },
-  {
-    name: "Trang phục Spider-Man - No Way Home",
-    slug: "spiderman-no-way-home",
-    description: "Bộ trang phục Spider-Man từ phim No Way Home",
-    shortDescription: "Bộ trang phục Spider-Man mới nhất",
-    price: 2200000,
-    comparePrice: 2800000,
-    sku: "MOV-SPI-001",
-    categorySlug: "movie-tv",
-    status: ProductStatus.ACTIVE,
-    type: ProductType.BOTH,
-    tags: ["spiderman", "marvel", "movie"],
-    rating: 4.9,
-    reviewCount: 78,
-    viewCount: 2890,
-    soldCount: 145,
-    publishedAt: new Date(),
-  },
-]
-
-const productSizes = ["S", "M", "L", "XL"] as const
 
 const rentalConfig = {
   pricePerDayMultiplier: 0.05,
@@ -287,7 +188,7 @@ const measurementTemplate = {
 
 const reviewsTemplate = [
   {
-    productSlug: "naruto-uzumaki-hokage",
+    productSlug: "nezuko-kamado",
     rating: 5,
     title: "Tuyệt vời!",
     content: "Chất lượng tốt, may đo chuẩn, giao hàng nhanh.",
@@ -297,7 +198,7 @@ const reviewsTemplate = [
     isPublished: true,
   },
   {
-    productSlug: "genshin-raiden-shogun",
+    productSlug: "raiden-shogun",
     rating: 5,
     title: "Đẹp như mơ",
     content: "Bộ Raiden đẹp xuất sắc, chi tiết tỉ mỉ.",
@@ -378,45 +279,57 @@ const seedProducts = async (
 ) => {
   const created = []
 
-  for (const template of products) {
-    const categoryId = categoriesMap.get(template.categorySlug)
-    if (!categoryId)
-      throw new Error(`Category not found: ${template.categorySlug}`)
-
-    const { categorySlug: _categorySlug, tags, ...productData } = template
+  for (const mockProduct of mockProducts) {
+    const categorySlug = getCategorySlug(mockProduct.category)
+    const categoryId = categoriesMap.get(categorySlug)
+    if (!categoryId) throw new Error(`Category not found: ${categorySlug}`)
 
     const product = await prisma.product.upsert({
-      where: { slug: productData.slug },
+      where: { slug: mockProduct.slug },
       update: {},
-      create: { ...productData, tags: [...tags], categoryId, sellerId },
+      create: {
+        name: mockProduct.name,
+        slug: mockProduct.slug,
+        description: mockProduct.description,
+        shortDescription: mockProduct.description.slice(0, 100),
+        price: mockProduct.price,
+        comparePrice: mockProduct.originalPrice,
+        sku: mockProduct.slug.toUpperCase(),
+        type: mockProduct.canRent ? ProductType.BOTH : ProductType.SALE,
+        status: ProductStatus.ACTIVE,
+        tags: [
+          mockProduct.series.toLowerCase(),
+          mockProduct.category.toLowerCase(),
+        ],
+        rating: mockProduct.rating,
+        reviewCount: mockProduct.reviewCount,
+        viewCount: Math.floor(Math.random() * 1000),
+        soldCount: Math.floor(Math.random() * 100),
+        publishedAt: new Date(),
+        categoryId,
+        sellerId,
+      },
     })
     created.push(product)
 
-    await prisma.productImage.createMany({
-      data: [
-        {
+    if (mockProduct.images.length > 0) {
+      await prisma.productImage.createMany({
+        data: mockProduct.images.map((url, index) => ({
           productId: product.id,
-          url: `/images/products/${product.slug}/main.jpg`,
-          alt: product.name,
-          order: 0,
-          isPrimary: true,
-        },
-        {
-          productId: product.id,
-          url: `/images/products/${product.slug}/detail-1.jpg`,
-          alt: `${product.name} - Chi tiết 1`,
-          order: 1,
-          isPrimary: false,
-        },
-      ],
-      skipDuplicates: true,
-    })
+          url,
+          alt: `${mockProduct.name} - ${index + 1}`,
+          order: index,
+          isPrimary: index === 0,
+        })),
+        skipDuplicates: true,
+      })
+    }
 
     await prisma.productVariant.createMany({
-      data: productSizes.map((size, index) => ({
+      data: mockProduct.sizes.map((size, index) => ({
         productId: product.id,
         name: `Size ${size}`,
-        sku: `${product.sku}-${size}`,
+        sku: `${product.slug.toUpperCase()}-${size}`,
         price: product.price,
         stock: 10 + index * 2,
         attributes: JSON.stringify({ size, color: "default" }),
