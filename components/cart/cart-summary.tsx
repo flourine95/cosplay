@@ -1,17 +1,40 @@
 "use client"
 
-import { useCart } from "@/stores/cart-store"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ArrowRight, Truck, RotateCcw, Shield } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
 import Link from "next/link"
+import type { CartItem } from "@/hooks/use-cart"
 
-export function CartSummary() {
-  const { items, totalPrice, totalItems, clearCart } = useCart()
+interface CartSummaryProps {
+  items: CartItem[]
+  totalPrice: number
+  totalItems: number
+  clearCart: () => Promise<void>
+}
 
+// Format price function based on user requirement: toLocaleString('vi-VN') + "₫"
+const formatCartPrice = (price: number) => {
+  return `${price.toLocaleString("vi-VN")}₫`
+}
+
+export function CartSummary({
+  items,
+  totalPrice,
+  totalItems,
+  clearCart,
+}: CartSummaryProps) {
   const shippingCost = totalItems > 0 ? 35000 : 0
   const finalTotal = totalPrice + shippingCost
+
+  const handleClearCart = async () => {
+    const confirmClear = window.confirm(
+      "Bạn có chắc chắn muốn xóa toàn bộ sản phẩm trong giỏ hàng không?"
+    )
+    if (confirmClear) {
+      await clearCart()
+    }
+  }
 
   return (
     <div className="sticky top-20 flex flex-col gap-0 rounded-xl border border-border bg-background p-6">
@@ -27,13 +50,13 @@ export function CartSummary() {
             Tạm tính ({totalItems} sản phẩm)
           </span>
           <span className="font-medium tabular-nums">
-            {formatPrice(totalPrice)}
+            {formatCartPrice(totalPrice)}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Phí vận chuyển</span>
           <span className="font-medium tabular-nums">
-            {totalItems > 0 ? formatPrice(shippingCost) : "—"}
+            {totalItems > 0 ? formatCartPrice(shippingCost) : "—"}
           </span>
         </div>
       </div>
@@ -43,7 +66,7 @@ export function CartSummary() {
       <div className="flex justify-between">
         <span className="font-semibold text-foreground">Tổng cộng</span>
         <span className="text-lg font-bold text-foreground tabular-nums">
-          {formatPrice(finalTotal)}
+          {formatCartPrice(finalTotal)}
         </span>
       </div>
 
@@ -70,19 +93,19 @@ export function CartSummary() {
       </Button>
 
       <Button asChild variant="outline" className="mt-2 w-full rounded-full">
-        <Link href="/products">Tiếp tục mua sắm</Link>
+        <Link href="/">Tiếp tục mua sắm</Link>
       </Button>
 
       {items.length > 0 && (
         <button
-          onClick={clearCart}
+          onClick={handleClearCart}
           className="mt-2 w-full py-2 text-xs text-muted-foreground transition-colors hover:text-destructive"
         >
           Xóa toàn bộ giỏ hàng
         </button>
       )}
 
-      {/* Trust signals — dùng design system colors */}
+      {/* Trust signals */}
       <div className="mt-5 flex flex-col gap-2 border-t border-border/60 pt-5">
         {[
           { icon: Truck, text: "Giao hàng 2–5 ngày toàn quốc" },

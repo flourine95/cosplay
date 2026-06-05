@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useCart } from "@/stores/cart-store"
+import { useCart } from "@/hooks/use-cart"
 import { useAuth } from "@/stores/auth-store"
 
 const navLinks = [
