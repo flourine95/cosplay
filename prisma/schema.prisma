@@ -234,6 +234,8 @@ model CartItem {
   productId Int
   variantId Int
   quantity  Int      @default(1)
+  type      String   @default("Mua")
+  rentDays  Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

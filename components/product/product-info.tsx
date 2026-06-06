@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { formatPrice } from "@/lib/utils"
-import { useCart } from "@/stores/cart-store"
+import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
 import type { Product } from "@/lib/products"
 
@@ -31,7 +31,7 @@ export function ProductInfo({ product }: { product: Product }) {
   const currentPrice =
     mode === "buy" ? product.price : (product.rentPrice ?? 0) * rentDays
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedSize) {
       setSizeError(true)
       // Scroll size selector into view
@@ -43,25 +43,18 @@ export function ProductInfo({ product }: { product: Product }) {
     }
 
     setSizeError(false)
-    addItem({
-      productSlug: product.slug,
-      productName: product.name,
-      price: currentPrice,
-      quantity: 1,
-      size: selectedSize,
-      type: mode,
-      rentDays: mode === "rent" ? rentDays : undefined,
-      image: product.images[0] ?? "",
-    })
-
-    toast.success(
-      mode === "buy"
-        ? `${product.name} đã được thêm vào giỏ hàng`
-        : `Đã đặt thuê ${product.name} trong ${rentDays} ngày`
+    const success = await addItem(
+      product.slug,
+      selectedSize,
+      mode,
+      mode === "rent" ? rentDays : undefined,
+      1
     )
 
-    setSelectedSize(null)
-    setSizeError(false)
+    if (success) {
+      setSelectedSize(null)
+      setSizeError(false)
+    }
   }
 
   const handleWishlist = () => {
