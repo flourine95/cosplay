@@ -1,7 +1,18 @@
+# Build outputs
 dist/
-node_modules/
 .next/
 .turbo/
 coverage/
-pnpm-lock.yaml
+
+# Dependencies
+node_modules/
 .pnpm-store/
+pnpm-lock.yaml
+
+# Generated code (do not format)
+components/ui/
+app/generated/
+
+# Kiro internal files (do not format)
+.kiro/
+**/.kiro/**

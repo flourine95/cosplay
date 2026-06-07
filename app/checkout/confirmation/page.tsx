@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { CheckCircle } from "lucide-react"
 import Link from "next/link"
@@ -17,7 +18,7 @@ const paymentMethods = {
   card: "Thẻ tín dụng / Debit card",
 }
 
-export default function ConfirmationPage() {
+function ConfirmationContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get("orderId") || "ORD-UNKNOWN"
   const method =
@@ -174,5 +175,13 @@ export default function ConfirmationPage() {
 
       <Footer />
     </main>
+  )
+}
+
+export default function ConfirmationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConfirmationContent />
+    </Suspense>
   )
 }

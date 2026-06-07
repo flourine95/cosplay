@@ -4,6 +4,7 @@ import {
   CalendarDays,
   DollarSign,
   Gauge,
+  MessageSquare,
   Package,
   Scissors,
   Search,
@@ -19,8 +20,9 @@ export const sellerNavItems = [
   { title: "Tổng quan", href: "/seller", icon: Gauge },
   { title: "Quản lý sản phẩm", href: "/seller/products", icon: Package },
   { title: "Đơn mua & Thuê", href: "/seller/orders", icon: ShoppingBag },
+  { title: "Tin nhắn", href: "/seller/messages", icon: MessageSquare },
   { title: "Lịch trình thuê", href: "/seller/calendar", icon: CalendarDays },
-  { title: "Quản lý đặt may", href: "/seller/tailoring", icon: Scissors }, // <-- Thay thế mục "Báo giá" cũ
+  { title: "Quản lý đặt may", href: "/seller/tailoring", icon: Scissors },
   { title: "Quản lý tài chính", href: "/seller/revenue", icon: DollarSign },
   { title: "Thống kê", href: "/seller/statistics", icon: BarChart3 },
 ]
@@ -76,7 +78,8 @@ export const sellerProducts = [
     rented: 8,
     status: "Hoạt động",
     basePrice: "Bán: 850k | Thuê: 120k/ngày",
-    image: "👗",
+    image:
+      "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=400&h=400&fit=crop",
   },
   {
     name: "Set Hầu gái phong cách Nhật",
@@ -87,7 +90,8 @@ export const sellerProducts = [
     rented: 14,
     status: "Bảo trì",
     basePrice: "Thuê: 90k/ngày",
-    image: "🎀",
+    image:
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop",
   },
   {
     name: "Áo Cosplay Chiến Binh (May theo số đo)",
@@ -98,7 +102,8 @@ export const sellerProducts = [
     rented: 0,
     status: "Hoạt động",
     basePrice: "Từ 1.200.000đ",
-    image: "⚔️",
+    image:
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=400&fit=crop",
   },
 ]
 
@@ -179,8 +184,8 @@ export const tailoringOrders: TailoringOrder[] = [
       "Rộng vai": "38 cm",
     },
     references: [
-      "https://images.unsplash.com/photo-1?w=200",
-      "https://images.unsplash.com/photo-2?w=200",
+      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=400&fit=crop",
     ],
     timeline: [
       { label: "Đã nhận yêu cầu", done: true },
@@ -202,7 +207,9 @@ export const tailoringOrders: TailoringOrder[] = [
       "Cổ tay": "18 cm",
       "Chiều dài tay": "55 cm",
     },
-    references: ["https://images.unsplash.com/photo-3?w=200"],
+    references: [
+      "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=400&fit=crop",
+    ],
     timeline: [
       { label: "Đã nhận yêu cầu", done: true },
       { label: "Đã in 3D xong base", done: true },
@@ -222,7 +229,10 @@ export const tailoringOrders: TailoringOrder[] = [
       "Vòng eo": "60 cm",
       "Chiều dài váy": "90 cm",
     },
-    references: ["https://images.unsplash.com/photo-4?w=200"],
+    references: [
+      "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop",
+    ],
     timeline: [
       { label: "Đã nhận yêu cầu", done: true },
       { label: "Đã cắt vải", done: true },
@@ -233,7 +243,6 @@ export const tailoringOrders: TailoringOrder[] = [
       {
         text: "Phần eo hơi rộng so với mình, shop bóp vào 2cm giúp mình nhé. Ren chân váy cho dài thêm 5cm được không ạ?",
         time: "2 giờ trước",
-        status: "pending",
       },
     ],
   },
@@ -300,7 +309,10 @@ export const quickActions = [Search, Bell, Settings, Truck]
 
 // Utility functions for date parsing and sorting
 export function parseDateString(dateStr: string): Date {
-  const [day, month, year] = dateStr.split("/").map(Number)
+  const parts = dateStr.split("/").map(Number)
+  const day = parts[0] ?? 1
+  const month = parts[1] ?? 1
+  const year = parts[2] ?? 2000
   return new Date(year, month - 1, day)
 }
 
@@ -439,3 +451,227 @@ export const topProducts = [
     rev: "31.0M",
   },
 ]
+
+// Messaging data
+export interface Message {
+  id: string
+  senderId: string
+  senderName: string
+  senderAvatar?: string
+  content: string
+  timestamp: string
+  isRead: boolean
+  attachments?: { type: "image" | "file"; url: string; name?: string }[]
+}
+
+export interface Conversation {
+  id: string
+  customerId: string
+  customerName: string
+  customerAvatar?: string
+  lastMessage: string
+  lastMessageTime: string
+  unreadCount: number
+  orderId?: string
+  orderType?: string
+  status: "active" | "archived"
+}
+
+export const conversations: Conversation[] = [
+  {
+    id: "CONV-001",
+    customerId: "CUST-001",
+    customerName: "Nguyễn Lan",
+    customerAvatar:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    lastMessage: "Cho em hỏi áo Venti có thể giao trước ngày 15 không ạ?",
+    lastMessageTime: "2 phút trước",
+    unreadCount: 2,
+    orderId: "TAIL-001",
+    orderType: "Đặt may",
+    status: "active",
+  },
+  {
+    id: "CONV-002",
+    customerId: "CUST-002",
+    customerName: "Trần Hữu Khang",
+    customerAvatar:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    lastMessage: "Shop ơi, giáp tay đã sơn xong chưa ạ?",
+    lastMessageTime: "15 phút trước",
+    unreadCount: 1,
+    orderId: "TAIL-002",
+    orderType: "Đặt may",
+    status: "active",
+  },
+  {
+    id: "CONV-003",
+    customerId: "CUST-003",
+    customerName: "Lê Bảo Ngọc",
+    customerAvatar:
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
+    lastMessage: "Váy đã vừa rồi ạ, cảm ơn shop nhiều!",
+    lastMessageTime: "1 giờ trước",
+    unreadCount: 0,
+    orderId: "TAIL-003",
+    orderType: "Đặt may",
+    status: "active",
+  },
+  {
+    id: "CONV-004",
+    customerId: "CUST-004",
+    customerName: "Nguyễn Minh Anh",
+    customerAvatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+    lastMessage: "Em muốn thuê thêm 1 ngày nữa được không ạ?",
+    lastMessageTime: "3 giờ trước",
+    unreadCount: 0,
+    orderId: "DH-1024",
+    orderType: "Thuê",
+    status: "active",
+  },
+  {
+    id: "CONV-005",
+    customerId: "CUST-005",
+    customerName: "Hoàng Nam",
+    customerAvatar:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+    lastMessage: "Đồ em sẽ trả vào chiều mai nhé shop",
+    lastMessageTime: "5 giờ trước",
+    unreadCount: 0,
+    orderId: "DH-1028",
+    orderType: "Thuê",
+    status: "active",
+  },
+]
+
+export const messagesByConversation: Record<string, Message[]> = {
+  "CONV-001": [
+    {
+      id: "MSG-001",
+      senderId: "CUST-001",
+      senderName: "Nguyễn Lan",
+      senderAvatar:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+      content: "Chào shop, em đã gửi yêu cầu đặt may áo Venti rồi ạ",
+      timestamp: "10:30 AM",
+      isRead: true,
+    },
+    {
+      id: "MSG-002",
+      senderId: "SELLER",
+      senderName: "cosplay.vn",
+      content:
+        "Chào em! Shop đã nhận được yêu cầu rồi nhé. Shop sẽ báo giá trong vòng 2 giờ.",
+      timestamp: "10:35 AM",
+      isRead: true,
+    },
+    {
+      id: "MSG-003",
+      senderId: "SELLER",
+      senderName: "cosplay.vn",
+      content:
+        "Em xem báo giá này nhé: Tổng 1.200.000đ, thời gian hoàn thành 14 ngày. Em đồng ý shop sẽ bắt đầu làm ngay.",
+      timestamp: "12:15 PM",
+      isRead: true,
+    },
+    {
+      id: "MSG-004",
+      senderId: "CUST-001",
+      senderName: "Nguyễn Lan",
+      senderAvatar:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+      content: "Vâng em đồng ý ạ. Nhưng cho em hỏi thêm...",
+      timestamp: "12:20 PM",
+      isRead: true,
+    },
+    {
+      id: "MSG-005",
+      senderId: "CUST-001",
+      senderName: "Nguyễn Lan",
+      senderAvatar:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+      content: "Cho em hỏi áo Venti có thể giao trước ngày 15 không ạ?",
+      timestamp: "12:21 PM",
+      isRead: false,
+    },
+  ],
+  "CONV-002": [
+    {
+      id: "MSG-006",
+      senderId: "CUST-002",
+      senderName: "Trần Hữu Khang",
+      senderAvatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+      content: "Chào shop, giáp tay Iron Man của em đang ở bước nào rồi ạ?",
+      timestamp: "9:00 AM",
+      isRead: true,
+    },
+    {
+      id: "MSG-007",
+      senderId: "SELLER",
+      senderName: "cosplay.vn",
+      content:
+        "Chào anh! Hiện tại shop đã in 3D xong và đang trong giai đoạn chà nhám để chuẩn bị sơn.",
+      timestamp: "9:15 AM",
+      isRead: true,
+    },
+    {
+      id: "MSG-008",
+      senderId: "SELLER",
+      senderName: "cosplay.vn",
+      content: "Dự kiến 2-3 ngày nữa sẽ hoàn thành phần sơn nhé anh.",
+      timestamp: "9:16 AM",
+      isRead: true,
+      attachments: [
+        {
+          type: "image",
+          url: "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=400&fit=crop",
+          name: "progress-1.jpg",
+        },
+      ],
+    },
+    {
+      id: "MSG-009",
+      senderId: "CUST-002",
+      senderName: "Trần Hữu Khang",
+      senderAvatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+      content: "Shop ơi, giáp tay đã sơn xong chưa ạ?",
+      timestamp: "11:45 AM",
+      isRead: false,
+    },
+  ],
+  "CONV-003": [
+    {
+      id: "MSG-010",
+      senderId: "CUST-003",
+      senderName: "Lê Bảo Ngọc",
+      senderAvatar:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
+      content:
+        "Shop ơi, phần eo hơi rộng so với em, shop bóp vào 2cm giúp em nhé",
+      timestamp: "8:30 AM",
+      isRead: true,
+    },
+    {
+      id: "MSG-011",
+      senderId: "SELLER",
+      senderName: "cosplay.vn",
+      content:
+        "Dạ được ạ, shop sẽ chỉnh lại phần eo. Em có muốn thay đổi gì thêm không?",
+      timestamp: "8:45 AM",
+      isRead: true,
+    },
+    {
+      id: "MSG-012",
+      senderId: "CUST-003",
+      senderName: "Lê Bảo Ngọc",
+      senderAvatar:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
+      content: "Váy đã vừa rồi ạ, cảm ơn shop nhiều!",
+      timestamp: "11:00 AM",
+      isRead: true,
+    },
+  ],
+}

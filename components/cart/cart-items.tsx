@@ -1,143 +1,136 @@
 "use client"
 
-import { useCart } from "@/lib/cart-context"
 import { Trash2, Plus, Minus, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import Link from "next/link"
+import type { CartItem } from "@/hooks/use-cart"
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price)
+interface CartItemsProps {
+  items: CartItem[]
+  updateQuantity: (itemId: string, quantity: number) => Promise<void>
+  removeItem: (itemId: string) => Promise<void>
 }
 
-export function CartItems() {
-  const { items, removeItem, updateQuantity } = useCart()
+// Format price function based on user requirement: toLocaleString('vi-VN') + "₫"
+const formatCartPrice = (price: number) => {
+  return `${price.toLocaleString("vi-VN")}₫`
+}
 
+export function CartItems({
+  items,
+  updateQuantity,
+  removeItem,
+}: CartItemsProps) {
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-muted/50 py-12">
-        <ShoppingCart className="size-12 text-muted-foreground/50" />
+      <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-muted/50 py-16">
+        <ShoppingCart className="size-10 text-muted-foreground/40" />
         <div className="text-center">
-          <p className="text-lg font-semibold text-foreground">
+          <p className="text-base font-semibold text-foreground">
             Giỏ hàng trống
           </p>
-          <p className="text-sm text-muted-foreground">
-            Thêm các sản phẩm để bắt đầu mua sắm
+          <p className="mt-1 text-sm text-muted-foreground">
+            Thêm sản phẩm để bắt đầu mua sắm
           </p>
         </div>
-        <Link href="/products">
-          <Button>Tiếp tục mua sắm</Button>
-        </Link>
+        <Button asChild variant="outline" className="rounded-full">
+          <Link href="/">Khám phá sản phẩm</Link>
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col divide-y divide-border">
       {items.map((item) => (
-        <Card
-          key={`${item.productSlug}-${item.size}-${item.type}`}
-          className="p-4"
-        >
-          <div className="flex gap-4">
-            {/* Product image */}
-            <div className="relative size-24 shrink-0 bg-muted">
-              <Image
-                src={item.image}
-                alt={item.productName}
-                fill
-                className="object-cover"
-              />
+        <div key={item.id} className="flex gap-4 py-5 first:pt-0 last:pb-0">
+          {/* Product image */}
+          <Link
+            href={`/products/${item.productSlug}`}
+            className="relative size-24 shrink-0 overflow-hidden rounded-xl bg-muted"
+          >
+            <Image
+              src={item.image}
+              alt={`Trang phục ${item.name}`}
+              fill
+              className="object-cover transition-transform duration-300 hover:scale-105"
+              sizes="96px"
+            />
+          </Link>
+
+          {/* Product details */}
+          <div className="flex flex-1 flex-col gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                <Link
+                  href={`/products/${item.productSlug}`}
+                  className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
+                >
+                  {item.name}
+                </Link>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="outline" className="text-xs font-normal">
+                    Size {item.size}
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs font-normal">
+                    {item.type === "Mua"
+                      ? "Mua"
+                      : `Thuê ${item.rentDays || 3} ngày`}
+                  </Badge>
+                </div>
+              </div>
+              <button
+                onClick={() => removeItem(item.id)}
+                className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                aria-label={`Xóa ${item.name} khỏi giỏ hàng`}
+              >
+                <Trash2 className="size-4" />
+              </button>
             </div>
 
-            {/* Product details */}
-            <div className="flex flex-1 flex-col gap-2">
-              <div className="flex items-start justify-between">
-                <div>
-                  <Link
-                    href={`/products/${item.productSlug}`}
-                    className="font-semibold hover:underline"
-                  >
-                    {item.productName}
-                  </Link>
-                  <div className="mt-1 flex gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      Size: {item.size}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {item.type === "buy"
-                        ? "Mua"
-                        : `Thuê ${item.rentDays} ngày`}
-                    </Badge>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    removeItem(item.productSlug, item.size, item.type)
-                  }
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
+            <div className="flex items-center justify-between">
+              {/* Price */}
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-foreground">
+                  {formatCartPrice(item.price * item.quantity)}
+                </span>
+                {item.quantity > 1 && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatCartPrice(item.price)} × {item.quantity}
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-end justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    Giá: {formatPrice(item.price)}
-                  </p>
-                  <p className="font-semibold">
-                    {formatPrice(item.price * item.quantity)}
-                  </p>
-                </div>
-
-                {/* Quantity controls */}
-                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      updateQuantity(
-                        item.productSlug,
-                        item.size,
-                        item.type,
-                        item.quantity - 1
-                      )
+              {/* Quantity controls */}
+              <div className="flex items-center gap-1 rounded-full border border-border px-1 py-1">
+                <button
+                  onClick={() => {
+                    if (item.quantity > 1) {
+                      updateQuantity(item.id, item.quantity - 1)
                     }
-                    className="size-8"
-                  >
-                    <Minus className="size-3" />
-                  </Button>
-                  <span className="w-8 text-center text-sm font-medium">
-                    {item.quantity}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      updateQuantity(
-                        item.productSlug,
-                        item.size,
-                        item.type,
-                        item.quantity + 1
-                      )
-                    }
-                    className="size-8"
-                  >
-                    <Plus className="size-3" />
-                  </Button>
-                </div>
+                  }}
+                  disabled={item.quantity <= 1}
+                  className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                  aria-label={`Giảm số lượng ${item.name}`}
+                >
+                  <Minus className="size-3" />
+                </button>
+                <span className="w-7 text-center text-sm font-medium tabular-nums">
+                  {item.quantity}
+                </span>
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label={`Tăng số lượng ${item.name}`}
+                >
+                  <Plus className="size-3" />
+                </button>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       ))}
     </div>
   )

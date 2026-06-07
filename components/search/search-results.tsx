@@ -46,7 +46,7 @@ export function SearchResults({ products, query }: SearchResultsProps) {
           {/* Image with hover overlay */}
           <div className="relative aspect-[3/4] overflow-hidden rounded-xl">
             <Image
-              src={product.images[0]}
+              src={product.images[0] ?? ""}
               alt={product.name}
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-105"

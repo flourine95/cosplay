@@ -1,89 +1,126 @@
 "use client"
 
-import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Truck, RotateCcw, Shield } from "lucide-react"
 import Link from "next/link"
+import type { CartItem } from "@/hooks/use-cart"
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price)
+interface CartSummaryProps {
+  items: CartItem[]
+  totalPrice: number
+  totalItems: number
+  clearCart: () => Promise<void>
 }
 
-export function CartSummary() {
-  const { items, totalPrice, totalItems, clearCart } = useCart()
+// Format price function based on user requirement: toLocaleString('vi-VN') + "₫"
+const formatCartPrice = (price: number) => {
+  return `${price.toLocaleString("vi-VN")}₫`
+}
 
+export function CartSummary({
+  items,
+  totalPrice,
+  totalItems,
+  clearCart,
+}: CartSummaryProps) {
   const shippingCost = totalItems > 0 ? 35000 : 0
-  const tax = Math.round(totalPrice * 0.1)
-  const finalTotal = totalPrice + shippingCost + tax
+  const finalTotal = totalPrice + shippingCost
+
+  const handleClearCart = async () => {
+    const confirmClear = window.confirm(
+      "Bạn có chắc chắn muốn xóa toàn bộ sản phẩm trong giỏ hàng không?"
+    )
+    if (confirmClear) {
+      await clearCart()
+    }
+  }
 
   return (
-    <Card className="sticky top-20 h-fit p-6 md:col-span-1">
-      <h3 className="text-lg font-semibold text-foreground">
+    <div className="sticky top-20 flex flex-col gap-0 rounded-xl border border-border bg-background p-6">
+      <h3 className="text-base font-semibold text-foreground">
         Tóm tắt đơn hàng
       </h3>
+
       <Separator className="my-4" />
 
-      <div className="space-y-3 text-sm">
+      <div className="flex flex-col gap-2.5 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">
-            Subtotal ({totalItems} sản phẩm)
+            Tạm tính ({totalItems} sản phẩm)
           </span>
-          <span className="font-medium">{formatPrice(totalPrice)}</span>
+          <span className="font-medium tabular-nums">
+            {formatCartPrice(totalPrice)}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Phí vận chuyển</span>
-          <span className="font-medium">{formatPrice(shippingCost)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Thuế (10%)</span>
-          <span className="font-medium">{formatPrice(tax)}</span>
+          <span className="font-medium tabular-nums">
+            {totalItems > 0 ? formatCartPrice(shippingCost) : "—"}
+          </span>
         </div>
       </div>
 
       <Separator className="my-4" />
 
-      <div className="flex justify-between text-lg font-bold">
-        <span>Tổng cộng</span>
-        <span className="text-primary">{formatPrice(finalTotal)}</span>
+      <div className="flex justify-between">
+        <span className="font-semibold text-foreground">Tổng cộng</span>
+        <span className="text-lg font-bold text-foreground tabular-nums">
+          {formatCartPrice(finalTotal)}
+        </span>
       </div>
 
-      <Link href={items.length > 0 ? "/checkout" : "#"} className="block">
-        <Button
-          className="mt-6 w-full rounded-full"
-          size="lg"
-          disabled={items.length === 0}
-        >
-          Tiến hành thanh toán
-          <ArrowRight className="ml-2 size-4" />
-        </Button>
-      </Link>
+      <Button
+        asChild={items.length > 0}
+        className="mt-5 w-full rounded-full"
+        size="lg"
+        disabled={items.length === 0}
+      >
+        {items.length > 0 ? (
+          <Link
+            href="/checkout"
+            className="flex items-center justify-center gap-2"
+          >
+            Tiến hành thanh toán
+            <ArrowRight className="size-4 shrink-0" />
+          </Link>
+        ) : (
+          <span className="flex items-center justify-center gap-2">
+            Tiến hành thanh toán
+            <ArrowRight className="size-4 shrink-0" />
+          </span>
+        )}
+      </Button>
 
-      <Link href="/products" className="block">
-        <Button variant="outline" className="mt-2 w-full rounded-full">
-          Tiếp tục mua sắm
-        </Button>
-      </Link>
+      <Button asChild variant="outline" className="mt-2 w-full rounded-full">
+        <Link href="/">Tiếp tục mua sắm</Link>
+      </Button>
 
       {items.length > 0 && (
-        <Button
-          variant="ghost"
-          className="mt-2 w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={clearCart}
+        <button
+          onClick={handleClearCart}
+          className="mt-2 w-full py-2 text-xs text-muted-foreground transition-colors hover:text-destructive"
         >
           Xóa toàn bộ giỏ hàng
-        </Button>
+        </button>
       )}
 
-      <div className="mt-6 space-y-2 rounded-lg bg-green-50 p-4 text-xs text-green-800">
-        <p className="font-medium">✓ Giao hàng 2–5 ngày toàn quốc</p>
-        <p className="font-medium">✓ Hàng chính hãng, may thủ công</p>
-        <p className="font-medium">✓ Đổi trả 7 ngày nếu lỗi sản xuất</p>
+      {/* Trust signals */}
+      <div className="mt-5 flex flex-col gap-2 border-t border-border/60 pt-5">
+        {[
+          { icon: Truck, text: "Giao hàng 2–5 ngày toàn quốc" },
+          { icon: Shield, text: "Hàng chính hãng, may thủ công" },
+          { icon: RotateCcw, text: "Đổi trả 7 ngày nếu lỗi sản xuất" },
+        ].map(({ icon: Icon, text }) => (
+          <div key={text} className="flex items-center gap-2.5">
+            <Icon
+              className="size-3.5 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+            <span className="text-xs text-muted-foreground">{text}</span>
+          </div>
+        ))}
       </div>
-    </Card>
+    </div>
   )
 }

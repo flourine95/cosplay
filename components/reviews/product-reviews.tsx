@@ -48,7 +48,9 @@ export function ProductReviews({ product }: ProductReviewsProps) {
 
         <Button
           onClick={() => setShowWriteReview(!showWriteReview)}
-          variant={showWriteReview ? "outline" : "default"}
+          variant="outline"
+          size="sm"
+          className="rounded-full"
         >
           {showWriteReview ? (
             <>
@@ -104,7 +106,7 @@ export function ProductReviews({ product }: ProductReviewsProps) {
                       style={{
                         width:
                           totalReviews > 0
-                            ? `${(ratingCounts[index] / totalReviews) * 100}%`
+                            ? `${((ratingCounts[index] ?? 0) / totalReviews) * 100}%`
                             : "0%",
                       }}
                     />
@@ -153,7 +155,12 @@ export function ProductReviews({ product }: ProductReviewsProps) {
           <p className="mb-4 text-muted-foreground">
             Hãy là người đầu tiên đánh giá sản phẩm này
           </p>
-          <Button onClick={() => setShowWriteReview(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={() => setShowWriteReview(true)}
+          >
             <Plus className="mr-2 size-4" />
             Viết đánh giá đầu tiên
           </Button>

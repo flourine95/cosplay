@@ -1,27 +1,33 @@
-"use client"
-
-import { useState } from "react"
 import Sidebar from "@/components/admin/sidebar"
 import Header from "@/components/admin/header"
+import { redirect } from "next/navigation"
+import { UserRole } from "@/app/generated/prisma/enums"
+import { getSession } from "@/lib/auth"
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const user = await getSession()
+
+  if (!user || user.role !== UserRole.ADMIN) {
+    redirect(`/login?redirect=${encodeURIComponent("/admin")}`)
+  }
 
   return (
-    <div className="flex h-screen bg-[#f1f5f9]">
-      <Sidebar
-        isSidebarCollapsed={isSidebarCollapsed}
-        setSidebarCollapsed={setSidebarCollapsed}
-      />
+    <div className="flex min-h-screen flex-col bg-background">
+      {/* Admin Mode Indicator - Top border */}
+      <div className="h-1 bg-primary" />
 
-      <main className="flex flex-1 flex-col">
-        <Header />
-        <div className="flex-1 overflow-y-auto p-8">{children}</div>
-      </main>
+      {/* Header */}
+      <Header />
+
+      {/* Content with Sidebar */}
+      <div className="flex flex-1">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
     </div>
   )
 }

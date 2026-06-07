@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-04T00:00:00.000Z",
+  "title": "Design System: cosplay.vn",
+  "extensions": {
+    "colorMeta": {
+      "warm-amber": {
+        "role": "primary",
+        "displayName": "Warm Amber",
+        "canonical": "oklch(0.68 0.17 60)",
+        "tonalRamp": [
+          "oklch(0.20 0.17 60)",
+          "oklch(0.35 0.17 60)",
+          "oklch(0.50 0.17 60)",
+          "oklch(0.68 0.17 60)",
+          "oklch(0.80 0.14 65)",
+          "oklch(0.88 0.10 70)",
+          "oklch(0.95 0.06 70)",
+          "oklch(0.98 0.03 70)"
+        ]
+      },
+      "warm-amber-subtle": {
+        "role": "primary-subtle",
+        "displayName": "Warm Amber Subtle",
+        "canonical": "oklch(0.95 0.06 70)",
+        "tonalRamp": []
+      },
+      "deep-indigo": {
+        "role": "secondary",
+        "displayName": "Deep Indigo",
+        "canonical": "oklch(0.32 0.12 270)",
+        "tonalRamp": [
+          "oklch(0.13 0.025 270)",
+          "oklch(0.20 0.06 270)",
+          "oklch(0.32 0.12 270)",
+          "oklch(0.45 0.14 270)",
+          "oklch(0.60 0.16 270)",
+          "oklch(0.75 0.12 270)",
+          "oklch(0.88 0.06 270)",
+          "oklch(0.95 0.03 270)"
+        ]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Neutral Background",
+        "canonical": "oklch(0.99 0.004 270)",
+        "tonalRamp": []
+      },
+      "neutral-fg": {
+        "role": "neutral",
+        "displayName": "Neutral Foreground",
+        "canonical": "oklch(0.16 0.03 270)",
+        "tonalRamp": []
+      },
+      "neutral-muted": {
+        "role": "neutral",
+        "displayName": "Neutral Muted",
+        "canonical": "oklch(0.95 0.015 270)",
+        "tonalRamp": []
+      },
+      "neutral-border": {
+        "role": "neutral",
+        "displayName": "Neutral Border",
+        "canonical": "oklch(0.9 0.02 270)",
+        "tonalRamp": []
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headlines trên trang chủ và landing pages. Extra Bold (800) để tạo impact. Chỉ dùng 1-2 lần mỗi trang."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings chính. Bold (700) nhưng nhỏ hơn display."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card titles, product names, form section headers. SemiBold (600)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Text chính cho mô tả, paragraph, list items. Regular (400). Max-width 65-75ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, metadata (giá, rating, thời gian), navigation links. Medium (500)."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing cho state transitions (200ms)."
+      },
+      {
+        "name": "ease-image-scale",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Image hover scale effect (500ms)."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "CTA chính cho các hành động quan trọng (Mua ngay, Đặt may, Xác nhận).",
+      "html": "<button class=\"ds-btn-primary\">Mua ngay</button>",
+      "css": ".ds-btn-primary { background: oklch(0.68 0.17 60); color: oklch(0.16 0.03 270); padding: 0.75rem 2rem; font-size: 1rem; font-weight: 500; font-family: 'Be Vietnam Pro', system-ui, sans-serif; border: none; border-radius: 9999px; cursor: pointer; transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: oklch(0.64 0.17 60); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.68 0.17 60); outline-offset: 2px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary actions (Xem thêm, Hủy).",
+      "html": "<button class=\"ds-btn-outline\">Xem thêm</button>",
+      "css": ".ds-btn-outline { background: transparent; color: oklch(0.68 0.17 60); padding: 0.75rem 2rem; font-size: 1rem; font-weight: 500; font-family: 'Be Vietnam Pro', system-ui, sans-serif; border: 2px solid oklch(0.68 0.17 60); border-radius: 9999px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-outline:hover { background: oklch(0.95 0.06 70); } .ds-btn-outline:focus-visible { outline: 2px solid oklch(0.68 0.17 60); outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Container chính cho product cards, info cards.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Nezuko Kamado</h3><p class=\"ds-card-text\">Demon Slayer - Chất lượng cao, giao toàn quốc</p></div>",
+      "css": ".ds-card { background: oklch(0.99 0.004 270); border: 1px solid oklch(0.9 0.02 270 / 0.6); border-radius: 1.05rem; padding: 1.5rem; transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-card:hover { border-color: oklch(0.9 0.02 270); } .ds-card-title { font-size: 1.25rem; font-weight: 600; font-family: 'Be Vietnam Pro', system-ui, sans-serif; line-height: 1.3; color: oklch(0.16 0.03 270); margin: 0 0 0.5rem 0; } .ds-card-text { font-size: 0.875rem; font-family: 'Be Vietnam Pro', system-ui, sans-serif; line-height: 1.4; color: oklch(0.5 0.05 270); margin: 0; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text input cho forms (email, tên, số đo).",
+      "html": "<input type=\"text\" class=\"ds-input\" placeholder=\"Email của bạn\" />",
+      "css": ".ds-input { background: oklch(0.99 0.004 270); color: oklch(0.16 0.03 270); border: 1px solid oklch(0.9 0.02 270); border-radius: 0.6rem; padding: 0.75rem 1rem; font-size: 1rem; font-family: 'Be Vietnam Pro', system-ui, sans-serif; width: 100%; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-input:focus { outline: none; border-color: oklch(0.68 0.17 60); box-shadow: 0 0 0 2px oklch(0.68 0.17 60 / 0.2); } .ds-input::placeholder { color: oklch(0.5 0.05 270); }"
+    },
+    {
+      "name": "Chip / Tag",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Tags cho categories, filters, status badges.",
+      "html": "<span class=\"ds-chip\">Anime</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; background: oklch(0.95 0.015 270); color: oklch(0.5 0.05 270); border-radius: 9999px; padding: 0.5rem 0.75rem; font-size: 0.875rem; font-weight: 500; font-family: 'Be Vietnam Pro', system-ui, sans-serif; transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-chip:hover { background: oklch(0.9 0.02 270); cursor: pointer; } .ds-chip.ds-chip-selected { background: oklch(0.95 0.06 70); color: oklch(0.68 0.17 60); border: 1px solid oklch(0.68 0.17 60 / 0.2); }"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Desktop navigation links trong header.",
+      "html": "<a href=\"#\" class=\"ds-nav-link\">Mua ngay</a>",
+      "css": ".ds-nav-link { font-size: 0.875rem; font-weight: 500; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: oklch(0.5 0.05 270); text-decoration: none; transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-nav-link:hover { color: oklch(0.16 0.03 270); } .ds-nav-link.ds-nav-link-active { color: oklch(0.68 0.17 60); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Golden Hour",
+    "overview": "Hệ thống thiết kế lấy cảm hứng từ ánh sáng vàng ấm của giờ vàng (golden hour) - khoảnh khắc khi ánh sáng tự nhiên làm nổi bật màu sắc một cách hoàn hảo nhất. Giao diện sạch, trung tính như một tấm canvas, để hình ảnh trang phục cosplay đầy màu sắc tỏa sáng. Màu amber ấm áp xuất hiện như điểm nhấn chiến lược, tạo cảm giác tin cậy và thân thiện mà không át đi sự sáng tạo của sản phẩm.\n\nThiết kế ưu tiên mobile-first nhưng đảm bảo các tác vụ phức tạp (nhập số đo, quản lý lịch thuê) vẫn mượt mà trên desktop. Mọi luồng giao dịch minh bạch, có thể theo dõi, giảm ma sát để người dùng ra quyết định nhanh - đặc biệt quan trọng khi họ có deadline sự kiện gấp.\n\nHệ thống tránh xa aesthetic \"gamer/cyberpunk\" (tối, neon, hầm hố) và template e-commerce chung chung. Thay vào đó, chúng ta xây dựng một nền tảng sạch, cởi mở, nơi cộng đồng cosplay cảm thấy được tôn vinh và an tâm.",
+    "keyCharacteristics": [
+      "Clean, neutral canvas làm nổi bật hình ảnh sản phẩm",
+      "Warm amber accent tạo điểm nhấn tin cậy, không át màu",
+      "Flat by default - tonal layering thay vì shadow",
+      "Mobile-first responsive với desktop-optimized workflows",
+      "Minh bạch trong mọi luồng giao dịch (cọc, tiến độ, lịch thuê)"
+    ],
+    "rules": [
+      {
+        "name": "The Canvas Rule",
+        "body": "Neutral background chiếm >80% diện tích màn hình. Màu sắc chỉ xuất hiện trên hình ảnh sản phẩm và điểm nhấn chiến lược. Giao diện là nền, sản phẩm là tâm điểm.",
+        "section": "colors"
+      },
+      {
+        "name": "The Golden Accent Rule",
+        "body": "Warm amber chỉ dùng cho CTA chính và trạng thái quan trọng. Nếu mọi thứ đều amber, không gì nổi bật. Sự tiết chế tạo nên sức mạnh.",
+        "section": "colors"
+      },
+      {
+        "name": "The Contrast Rule",
+        "body": "Tỷ lệ scale giữa Display và Body phải ≥3× trên mobile, ≥4.5× trên desktop. Hierarchy phẳng làm mất điểm nhấn.",
+        "section": "typography"
+      },
+      {
+        "name": "The Vietnamese Rule",
+        "body": "Be Vietnam Pro được thiết kế riêng cho tiếng Việt nên dấu thanh (ă, ê, ô, ơ, ư + 5 dấu thanh) luôn hoàn hảo. Vẫn cần kiểm tra line-height và letter-spacing để đảm bảo thoải mái.",
+        "section": "typography"
+      },
+      {
+        "name": "The No-Shadow Rule",
+        "body": "Box-shadow bị cấm trừ khi có lý do kỹ thuật bắt buộc (ví dụ: sticky header cần tách biệt khỏi content khi scroll). Nếu cần shadow, phải xin phép và giải thích tại sao tonal layering không đủ.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Border-First Rule",
+        "body": "Khi cần tách biệt elements, thử border trước, tonal shift sau, shadow cuối cùng (và hầu như không bao giờ).",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Dùng OKLCH cho tất cả màu sắc. Đảm bảo perceptual uniformity và dễ điều chỉnh lightness/chroma.",
+      "Giới hạn warm amber chỉ cho CTA chính và trạng thái quan trọng. Sự tiết chế tạo nên impact.",
+      "Dùng tonal layering (neutral-bg → neutral-muted → neutral-border) thay vì shadow để tạo depth.",
+      "Test mọi text với dấu tiếng Việt đầy đủ. Line-height và letter-spacing phải đủ để dấu không bị cắt.",
+      "Tối ưu lazy loading cho images. Website có rất nhiều ảnh chất lượng cao - performance là ưu tiên số 1.",
+      "Dùng rounded-full cho buttons, rounded-xl cho cards, rounded-md cho inputs. Consistency tạo nên hệ thống.",
+      "Giữ max-width 65-75ch cho body text dài. Dễ đọc hơn trên desktop."
+    ],
+    "donts": [
+      "Dùng template e-commerce chung chung. Luồng thuê (lịch trống, cọc, hoàn trả) và đặt may (số đo, tiến độ) cần thiết kế riêng.",
+      "Làm UI \"gamer/cyberpunk\" (tối, neon, hầm hố). Chúng ta cần UI clean, neutral để làm nổi bật hình ảnh trang phục nhiều màu sắc.",
+      "Dùng box-shadow trừ khi có lý do kỹ thuật bắt buộc. Flat by default là nguyên tắc.",
+      "Dùng border-left hoặc border-right >1px làm colored accent trên cards/list items. Đây là pattern lười biếng.",
+      "Dùng gradient text (background-clip: text). Decorative, không meaningful. Dùng solid color.",
+      "Dùng #000 hoặc #fff. Tất cả neutrals phải tinted nhẹ về indigo (hue 270, chroma 0.004-0.03).",
+      "Tạo identical card grids. Vary sizes, layouts, hoặc emphasis để tránh monotony.",
+      "Quên test responsive behavior trên 320px-768px (mobile) và 768px-1024px (tablet). Mobile-first là ưu tiên."
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import { useState } from "react"
 import { format, differenceInDays } from "date-fns"
 import {
   Calendar as CalendarIcon,
@@ -154,7 +154,6 @@ export function RentalBooking() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center pb-6">
-                {/* @ts-expect-error – shadcn Calendar range mode */}
                 <Calendar
                   initialFocus
                   mode="range"

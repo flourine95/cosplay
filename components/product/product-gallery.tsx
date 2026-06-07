@@ -17,8 +17,8 @@ export function ProductGallery({ images, name }: Props) {
       {/* Main image */}
       <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-muted">
         <Image
-          src={images[active]}
-          alt={name}
+          src={images[active] ?? ""}
+          alt={`Trang phục ${name} — ảnh ${active + 1}`}
           fill
           priority
           className="object-cover transition-opacity duration-300"
@@ -28,10 +28,13 @@ export function ProductGallery({ images, name }: Props) {
 
       {/* Thumbnails */}
       {images.length > 1 && (
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="tablist" aria-label="Ảnh sản phẩm">
           {images.map((img, i) => (
             <button
               key={i}
+              role="tab"
+              aria-selected={active === i}
+              aria-label={`Xem ảnh ${i + 1} của ${images.length}`}
               onClick={() => setActive(i)}
               className={cn(
                 "relative aspect-square w-20 overflow-hidden rounded-lg border-2 transition-all",
@@ -46,6 +49,7 @@ export function ProductGallery({ images, name }: Props) {
                 fill
                 className="object-cover"
                 sizes="80px"
+                loading="lazy"
               />
             </button>
           ))}

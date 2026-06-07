@@ -1,15 +1,16 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { Be_Vietnam_Pro as BeVietnamPro } from "next/font/google"
 
-import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { CartProvider } from "@/lib/cart-context"
+import { AuthProvider } from "@/providers/auth-provider"
+import { QueryProvider } from "@/providers/query-provider"
 import { cn } from "@/lib/utils"
+import "./globals.css"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
+const beVietnamPro = BeVietnamPro({
+  subsets: ["vietnamese", "latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-sans",
+  display: "swap",
 })
 
 export default function RootLayout({
@@ -21,17 +22,14 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={cn(
-        "antialiased",
-        fontMono.variable,
-        "font-sans",
-        geist.variable
-      )}
+      className={cn("font-sans antialiased", beVietnamPro.variable)}
     >
       <body>
-        <ThemeProvider>
-          <CartProvider>{children}</CartProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

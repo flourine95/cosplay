@@ -1,11 +1,19 @@
-import { SellerPage } from "@/components/seller/seller-page"
+import { CalendarSectionNew } from "@/components/seller/section/calendar-section"
 
 export default function SellerCalendarPage() {
   return (
-    <SellerPage
-      type="calendar"
-      title="Quản lý lịch thuê"
-      description="Theo dõi lịch giao hàng, nhận trả, bảo trì và các mốc xử lý trong ngày."
-    />
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Lịch trình thuê
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Quản lý lịch giao hàng, nhận trả và bảo trì trang phục
+        </p>
+      </div>
+
+      <CalendarSectionNew />
+    </div>
   )
 }

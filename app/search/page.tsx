@@ -28,10 +28,10 @@ function SearchContent() {
   const maxPrice = searchParams.get("maxPrice")
 
   const products = searchProducts(query, {
-    category: category || undefined,
+    ...(category ? { category } : {}),
     priceRange:
       minPrice && maxPrice ? [Number(minPrice), Number(maxPrice)] : undefined,
-    sortBy: sortBy || undefined,
+    ...(sortBy ? { sortBy } : {}),
   })
 
   return (

@@ -1,14 +1,13 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { tailoringOrders } from "./seller-data"
-import CalendarSection from "./section/calendar-section"
-import DashboardSection from "./section/dashboard-section"
-import OrdersSection from "./section/orders-section"
-import ProductsSection from "./section/products-section"
-import RevenueSection from "./section/revenue-section"
-import StatisticsSection from "./section/statistics-section"
-import TailoringSection from "./section/tailoring-section"
+import { CalendarSectionNew } from "./section/calendar-section"
+import { DashboardSectionNew } from "./section/dashboard-section"
+import { OrdersSectionNew } from "./section/orders-section"
+import { ProductsSectionNew } from "./section/products-section"
+import { RevenueSectionNew } from "./section/revenue-section"
+import { StatisticsSectionNew } from "./section/statistics-section"
+import { TailoringSectionNew } from "./section/tailoring-section"
 
 type SellerPageProps = {
   title: ReactNode
@@ -47,13 +46,13 @@ export function SellerPage({ title, description, type }: SellerPageProps) {
         </div>
       </section>
 
-      {type === "dashboard" && <DashboardSection />}
-      {type === "products" && <ProductsSection />}
-      {type === "orders" && <OrdersSection />}
-      {type === "tailoring" && <TailoringSection data={tailoringOrders} />}
-      {type === "calendar" && <CalendarSection />}
-      {type === "revenue" && <RevenueSection />}
-      {type === "statistics" && <StatisticsSection />}
+      {type === "dashboard" && <DashboardSectionNew />}
+      {type === "products" && <ProductsSectionNew />}
+      {type === "orders" && <OrdersSectionNew />}
+      {type === "tailoring" && <TailoringSectionNew />}
+      {type === "calendar" && <CalendarSectionNew />}
+      {type === "revenue" && <RevenueSectionNew />}
+      {type === "statistics" && <StatisticsSectionNew />}
     </div>
   )
 }

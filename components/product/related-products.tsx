@@ -1,14 +1,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Star } from "lucide-react"
+import { formatPrice } from "@/lib/utils"
 import type { Product } from "@/lib/products"
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price)
-}
 
 export function RelatedProducts({ products }: { products: Product[] }) {
   if (!products.length) return null
@@ -28,11 +22,12 @@ export function RelatedProducts({ products }: { products: Product[] }) {
           >
             <div className="relative aspect-[3/4] overflow-hidden rounded-xl">
               <Image
-                src={product.images[0]}
-                alt={product.name}
+                src={product.images[0] ?? ""}
+                alt={`Trang phục ${product.name} từ ${product.series}`}
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 sizes="(max-width: 640px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
             <div>
@@ -41,8 +36,14 @@ export function RelatedProducts({ products }: { products: Product[] }) {
                 {product.name}
               </h3>
               <div className="mt-1 flex items-center gap-1.5">
-                <Star className="size-3 fill-amber-400 text-amber-400" />
-                <span className="text-xs text-muted-foreground">
+                <Star
+                  className="size-3 fill-amber-400 text-amber-400"
+                  aria-hidden="true"
+                />
+                <span
+                  className="text-xs text-muted-foreground"
+                  aria-label={`${product.rating} sao`}
+                >
                   {product.rating}
                 </span>
               </div>

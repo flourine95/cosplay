@@ -36,7 +36,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="mt-3 max-w-xs text-sm text-background/60">
-              Nền tảng cosplay hàng đầu Việt Nam — mua, thuê và đặt may trang
+              Nền tảng cosplay hàng đầu Việt Nam: mua, thuê và đặt may trang
               phục chất lượng cao.
             </p>
             <div className="mt-4 flex gap-3">

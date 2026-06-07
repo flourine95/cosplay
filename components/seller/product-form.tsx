@@ -46,7 +46,7 @@ export default function ProductForm({
     >
   ) => {
     const { name, value, type } = e.target as HTMLInputElement
-    const checked = (e.target as HTMLInputElement).checked
+    const { checked } = e.target as HTMLInputElement
 
     setFormData((prev) => ({
       ...prev,

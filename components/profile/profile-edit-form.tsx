@@ -35,7 +35,7 @@ export default function ProfileEditForm({ user }: { user: User }) {
         body: JSON.stringify(form),
       })
       // TODO: handle response / show toast
-    } catch (err) {
+    } catch {
       // TODO: show error
     } finally {
       setSaving(false)
