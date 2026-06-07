@@ -47,8 +47,10 @@ export default function ProfileEditForm({ user }: { user: User }) {
       onSubmit={handleSubmit}
       className="grid grid-cols-1 gap-4 sm:grid-cols-2"
     >
-      <div className="rounded-md border border-gray-600 p-4 sm:col-span-2">
-        <h3 className="text-sm font-semibold text-gray-600">Tên đăng nhập</h3>
+      <div className="rounded-md border border-border bg-secondary/30 p-4 sm:col-span-2">
+        <h3 className="text-sm font-semibold text-muted-foreground">
+          Tên đăng nhập
+        </h3>
         <Input
           className="mt-1 h-10"
           value={form.username ?? ""}
@@ -56,8 +58,10 @@ export default function ProfileEditForm({ user }: { user: User }) {
         />
       </div>
 
-      <div className="rounded-md border border-gray-600 p-4">
-        <h3 className="text-sm font-semibold text-gray-600">Họ và tên</h3>
+      <div className="rounded-md border border-border bg-secondary/30 p-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">
+          Họ và tên
+        </h3>
         <Input
           className="mt-1 h-10"
           value={form.name}
@@ -65,8 +69,8 @@ export default function ProfileEditForm({ user }: { user: User }) {
         />
       </div>
 
-      <div className="rounded-md border border-gray-600 p-4">
-        <h3 className="text-sm font-semibold text-gray-600">Email</h3>
+      <div className="rounded-md border border-border bg-secondary/30 p-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">Email</h3>
         <Input
           className="mt-1 h-10"
           value={form.email}
@@ -75,8 +79,10 @@ export default function ProfileEditForm({ user }: { user: User }) {
         />
       </div>
 
-      <div className="rounded-md border border-gray-600 p-4">
-        <h3 className="text-sm font-semibold text-gray-600">Số điện thoại</h3>
+      <div className="rounded-md border border-border bg-secondary/30 p-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">
+          Số điện thoại
+        </h3>
         <Input
           className="mt-1 h-10"
           value={form.phone ?? ""}
@@ -84,8 +90,10 @@ export default function ProfileEditForm({ user }: { user: User }) {
         />
       </div>
 
-      <div className="rounded-md border border-gray-600 p-4">
-        <h3 className="text-sm font-semibold text-gray-600">Giới tính</h3>
+      <div className="rounded-md border border-border bg-secondary/30 p-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">
+          Giới tính
+        </h3>
         <div className="mt-2">
           <RadioGroup
             value={form.gender ?? ""}
@@ -115,10 +123,10 @@ export default function ProfileEditForm({ user }: { user: User }) {
           </RadioGroup>
         </div>
       </div>
-      <div className="rounded-md border border-gray-600 p-4 sm:col-span-2">
-        <h3 className="text-sm font-semibold text-gray-600">Địa chỉ</h3>
+      <div className="rounded-md border border-border bg-secondary/30 p-4 sm:col-span-2">
+        <h3 className="text-sm font-semibold text-muted-foreground">Địa chỉ</h3>
         <textarea
-          className="mt-1 min-h-[4rem] w-full rounded-md border px-3 py-2"
+          className="mt-1 min-h-[4rem] w-full rounded-md border border-input bg-background px-3 py-2"
           value={form.address ?? ""}
           onChange={onChange("address")}
           rows={3}
