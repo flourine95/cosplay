@@ -41,13 +41,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await Promise.all([
-      prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      }),
-      createSession(user.id),
-    ])
+    await createSession(user.id)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    })
 
     return NextResponse.json({ user: sanitizeUser(user) })
   } catch (error) {
