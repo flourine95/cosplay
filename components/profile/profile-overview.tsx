@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useMemo, useState } from "react"
 import {
   User,
   Edit3,
@@ -28,21 +29,23 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
+import { getDefaultAddress, parseSavedAddresses } from "@/lib/profile"
 
-// Mock user data
-const user = {
-  name: "Nguyễn Văn A",
-  email: "nguyenvana@example.com",
-  phone: "0123 456 789",
-  address: "123 Đường ABC, Quận 1, TP.HCM",
-  avatar: null,
-  joinDate: "15/01/2024",
-  status: "active",
+type ProfileResponse = {
+  user: {
+    name: string
+    email: string
+    phone: string | null
+    avatar: string | null
+    createdAt: string
+    status: string
+    savedAddresses: unknown
+  }
   stats: {
-    orders: 12,
-    measurements: 3,
-    favorites: 8,
-  },
+    orders: number
+    measurements: number
+    addresses: number
+  }
 }
 
 const quickLinks = [
@@ -77,6 +80,101 @@ const quickLinks = [
 ]
 
 export function ProfileOverview() {
+  const [data, setData] = useState<ProfileResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadProfile = async () => {
+      try {
+        const res = await fetch("/api/profile")
+        const json = await res.json()
+        if (!mounted) return
+
+        if (res.ok) {
+          setData(json)
+        } else {
+          setData(null)
+        }
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const profile = useMemo(() => {
+    if (!data) return null
+
+    const savedAddresses = parseSavedAddresses(data.user.savedAddresses)
+    const defaultAddress = getDefaultAddress(data.user.savedAddresses)
+
+    return {
+      name: data.user.name,
+      email: data.user.email,
+      phone: data.user.phone || "Chưa cập nhật",
+      avatar: data.user.avatar,
+      address:
+        defaultAddress?.address ||
+        savedAddresses[0]?.address ||
+        "Chưa cập nhật",
+      joinDate: new Intl.DateTimeFormat("vi-VN").format(
+        new Date(data.user.createdAt)
+      ),
+      status:
+        data.user.status === "ACTIVE"
+          ? "Hoạt động"
+          : data.user.status === "SUSPENDED"
+            ? "Tạm khóa"
+            : data.user.status === "INACTIVE"
+              ? "Không hoạt động"
+              : "Chờ xác minh",
+      stats: data.stats,
+    }
+  }, [data])
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <Navbar />
+        <main className="flex-1">
+          <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-24 text-sm text-muted-foreground md:px-6">
+            Đang tải hồ sơ...
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <Navbar />
+        <main className="flex-1">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-6">
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              Chưa đăng nhập
+            </h1>
+            <p className="max-w-md text-sm text-muted-foreground">
+              Vui lòng đăng nhập để xem và quản lý hồ sơ cá nhân của bạn.
+            </p>
+            <Button asChild>
+              <Link href="/login">Đăng nhập</Link>
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
@@ -127,15 +225,15 @@ export function ProfileOverview() {
               <CardContent className="space-y-4">
                 <div className="flex flex-col items-center text-center">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={user.avatar || undefined} />
+                    <AvatarImage src={profile.avatar || undefined} />
                     <AvatarFallback className="bg-primary/10 text-lg font-bold text-primary">
-                      {user.name.charAt(0)}
+                      {profile.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <h2 className="mt-3 text-lg font-bold">{user.name}</h2>
+                  <h2 className="mt-3 text-lg font-bold">{profile.name}</h2>
                   <Badge variant="secondary" className="mt-2 gap-1">
                     <span className="h-2 w-2 rounded-full bg-green-500" />
-                    Hoạt động
+                    {profile.status}
                   </Badge>
                 </div>
 
@@ -146,7 +244,7 @@ export function ProfileOverview() {
                     <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="font-medium">{user.email}</p>
+                      <p className="font-medium">{profile.email}</p>
                     </div>
                   </div>
 
@@ -156,7 +254,7 @@ export function ProfileOverview() {
                       <p className="text-xs text-muted-foreground">
                         Số điện thoại
                       </p>
-                      <p className="font-medium">{user.phone}</p>
+                      <p className="font-medium">{profile.phone}</p>
                     </div>
                   </div>
 
@@ -164,7 +262,7 @@ export function ProfileOverview() {
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground">Địa chỉ</p>
-                      <p className="font-medium">{user.address}</p>
+                      <p className="font-medium">{profile.address}</p>
                     </div>
                   </div>
 
@@ -172,7 +270,7 @@ export function ProfileOverview() {
                     <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground">Tham gia</p>
-                      <p className="font-medium">{user.joinDate}</p>
+                      <p className="font-medium">{profile.joinDate}</p>
                     </div>
                   </div>
                 </div>
@@ -182,21 +280,21 @@ export function ProfileOverview() {
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold text-primary">
-                      {user.stats.orders}
+                      {profile.stats.orders}
                     </p>
                     <p className="text-xs text-muted-foreground">Đơn hàng</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-primary">
-                      {user.stats.measurements}
+                      {profile.stats.measurements}
                     </p>
                     <p className="text-xs text-muted-foreground">Số đo</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-primary">
-                      {user.stats.favorites}
+                      {profile.stats.addresses}
                     </p>
-                    <p className="text-xs text-muted-foreground">Yêu thích</p>
+                    <p className="text-xs text-muted-foreground">Địa chỉ</p>
                   </div>
                 </div>
               </CardContent>
@@ -253,7 +351,7 @@ export function ProfileOverview() {
                       },
                       {
                         action: "Chỉnh sửa thông tin",
-                        detail: "Cập nhật địa chỉ giao hàng",
+                        detail: "Cập nhật thông tin hồ sơ",
                         time: "3 ngày trước",
                         icon: User,
                       },
