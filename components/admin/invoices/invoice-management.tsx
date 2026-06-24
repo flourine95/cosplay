@@ -1,17 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { CheckCircle, Clock, Receipt } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -20,78 +12,63 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Receipt,
-  CheckCircle,
-  Clock,
-  Download,
-  MoreHorizontal,
-} from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
-const stats = [
-  { label: "Tổng hóa đơn", value: "2,456", icon: Receipt },
-  { label: "Đã thanh toán", value: "2,398", icon: CheckCircle },
-  { label: "Chờ thanh toán", value: "58", icon: Clock },
-]
+type InvoiceRow = {
+  id: string
+  seller: string
+  period: string
+  revenue: number
+  platformFee: number
+  netAmount: number
+  status: "PAID" | "PENDING"
+  issuedAt: Date
+}
 
-const invoices = [
-  {
-    id: "INV-001",
-    seller: "Cosplay Wonderland",
-    amount: "5.200.000đ",
-    fee: "520.000đ",
-    status: "Paid",
-    date: "15/04/2026",
-    period: "Tháng 3/2026",
-  },
-  {
-    id: "INV-002",
-    seller: "Kimono House",
-    amount: "3.800.000đ",
-    fee: "380.000đ",
-    status: "Pending",
-    date: "15/04/2026",
-    period: "Tháng 3/2026",
-  },
-  {
-    id: "INV-003",
-    seller: "Props Master Tech",
-    amount: "8.900.000đ",
-    fee: "890.000đ",
-    status: "Paid",
-    date: "15/04/2026",
-    period: "Tháng 3/2026",
-  },
-]
+interface InvoiceManagementProps {
+  invoices: InvoiceRow[]
+}
 
-export default function InvoiceManagement() {
+const formatCurrency = (value: number): string =>
+  `${value.toLocaleString("vi-VN")}đ`
+
+const formatDate = (value: Date): string =>
+  new Intl.DateTimeFormat("vi-VN").format(value)
+
+export default function InvoiceManagement({
+  invoices,
+}: InvoiceManagementProps) {
   const [filterStatus, setFilterStatus] = useState("all")
 
   const filteredInvoices =
     filterStatus === "all"
       ? invoices
-      : invoices.filter((i) => i.status.toLowerCase() === filterStatus)
+      : invoices.filter((invoice) => invoice.status === filterStatus)
+
+  const paidCount = invoices.filter(
+    (invoice) => invoice.status === "PAID"
+  ).length
+  const pendingCount = invoices.length - paidCount
+
+  const stats = [
+    { label: "Tổng hóa đơn", value: invoices.length, icon: Receipt },
+    { label: "Đã thanh toán", value: paidCount, icon: CheckCircle },
+    { label: "Chờ thanh toán", value: pendingCount, icon: Clock },
+  ]
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Quản lý Hóa đơn
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Theo dõi hóa đơn và phí sàn từ sellers
-          </p>
-        </div>
-        <Button>
-          <Download className="mr-2 h-4 w-4" />
-          Xuất báo cáo
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Quản lý hóa đơn</h1>
+        <p className="text-sm text-muted-foreground">
+          Theo dõi hóa đơn đối soát, phí nền tảng và số tiền cần trả seller.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -119,13 +96,13 @@ export default function InvoiceManagement() {
 
       <div className="flex items-center gap-4">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[190px]">
             <SelectValue placeholder="Lọc theo trạng thái" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="paid">Đã thanh toán</SelectItem>
-            <SelectItem value="pending">Chờ thanh toán</SelectItem>
+            <SelectItem value="PAID">Đã thanh toán</SelectItem>
+            <SelectItem value="PENDING">Chờ thanh toán</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
@@ -140,64 +117,60 @@ export default function InvoiceManagement() {
               <TableRow>
                 <TableHead>Mã hóa đơn</TableHead>
                 <TableHead>Seller</TableHead>
-                <TableHead>Kỳ thanh toán</TableHead>
+                <TableHead>Kỳ đối soát</TableHead>
                 <TableHead>Doanh thu</TableHead>
-                <TableHead>Phí sàn (10%)</TableHead>
+                <TableHead>Phí nền tảng</TableHead>
+                <TableHead>Thực trả</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày xuất</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-semibold text-foreground">
-                    {invoice.id}
-                  </TableCell>
-                  <TableCell>{invoice.seller}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {invoice.period}
-                  </TableCell>
-                  <TableCell className="font-semibold text-foreground">
-                    {invoice.amount}
-                  </TableCell>
-                  <TableCell className="font-semibold text-primary">
-                    {invoice.fee}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        invoice.status === "Paid" ? "default" : "secondary"
-                      }
-                    >
-                      {invoice.status === "Paid"
-                        ? "Đã thanh toán"
-                        : "Chờ thanh toán"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {invoice.date}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-                        <DropdownMenuItem>Tải PDF</DropdownMenuItem>
-                        {invoice.status === "Pending" && (
-                          <DropdownMenuItem>
-                            Xác nhận thanh toán
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {filteredInvoices.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Chưa có hóa đơn phù hợp.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredInvoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-semibold text-foreground">
+                      {invoice.id}
+                    </TableCell>
+                    <TableCell>{invoice.seller}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {invoice.period}
+                    </TableCell>
+                    <TableCell className="font-semibold text-foreground">
+                      {formatCurrency(invoice.revenue)}
+                    </TableCell>
+                    <TableCell className="font-semibold text-primary">
+                      {formatCurrency(invoice.platformFee)}
+                    </TableCell>
+                    <TableCell className="font-semibold text-foreground">
+                      {formatCurrency(invoice.netAmount)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          invoice.status === "PAID" ? "default" : "secondary"
+                        }
+                      >
+                        {invoice.status === "PAID"
+                          ? "Đã thanh toán"
+                          : "Chờ thanh toán"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(invoice.issuedAt)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -3,6 +3,7 @@ import { cache } from "react"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import type { User } from "@/app/generated/prisma/client"
+import { UserStatus } from "@/app/generated/prisma/enums"
 
 const SESSION_COOKIE = "session_id"
 const SESSION_DURATION_DAYS = 30
@@ -61,6 +62,15 @@ export const getSession = cache(
 
     if (!session || session.expiresAt < new Date()) {
       if (session) await prisma.session.delete({ where: { id: sessionId } })
+      cookieStore.delete(SESSION_COOKIE)
+      return null
+    }
+
+    if (
+      session.user.status === UserStatus.SUSPENDED ||
+      session.user.status === UserStatus.INACTIVE
+    ) {
+      await prisma.session.delete({ where: { id: sessionId } })
       cookieStore.delete(SESSION_COOKIE)
       return null
     }

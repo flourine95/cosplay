@@ -2,6 +2,7 @@
 
 import {
   LayoutDashboard,
+  Package,
   Users,
   Store,
   ShoppingCart,
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils"
 const menuItems = [
   { label: "Tổng quan", icon: LayoutDashboard, href: "/admin" },
   { label: "Quản lý User", icon: Users, href: "/admin/users" },
+  { label: "Quản lý sản phẩm", icon: Package, href: "/admin/products" },
   { label: "Quản lý Seller", icon: Store, href: "/admin/sellers" },
   { label: "Quản lý đơn hàng", icon: ShoppingCart, href: "/admin/orders" },
   { label: "Quản lý hóa đơn", icon: Receipt, href: "/admin/invoices" },

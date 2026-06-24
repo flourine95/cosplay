@@ -1,60 +1,76 @@
-"use client"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { DollarSign, TrendingUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { DollarSign, TrendingUp, Download } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const stats = [
-  {
-    label: "Doanh thu tháng này",
-    value: "145.8M",
-    icon: DollarSign,
-    trend: "+12.5%",
-  },
-  {
-    label: "Doanh thu tháng trước",
-    value: "129.6M",
-    icon: DollarSign,
-    trend: "+8.2%",
-  },
-  { label: "Tăng trưởng", value: "+12.5%", icon: TrendingUp, trend: null },
-]
+type RevenueTypeRow = {
+  type: string
+  amount: number
+  percent: number
+  color: string
+}
 
-const revenueByType = [
-  { type: "Đơn thuê", amount: "65.4M", percent: 45, color: "bg-primary" },
-  {
-    type: "Đơn đặt may",
-    amount: "51.2M",
-    percent: 35,
-    color: "bg-emerald-500",
-  },
-  { type: "Đơn bán đứt", amount: "29.2M", percent: 20, color: "bg-sky-500" },
-]
+type MonthlyRevenueRow = {
+  month: string
+  amount: number
+}
 
-const monthlyRevenue = [
-  { month: "T1", amount: "98.5M" },
-  { month: "T2", amount: "112.3M" },
-  { month: "T3", amount: "129.6M" },
-  { month: "T4", amount: "145.8M" },
-]
+interface RevenueManagementProps {
+  currentMonthRevenue: number
+  previousMonthRevenue: number
+  growthRate: number
+  revenueByType: RevenueTypeRow[]
+  monthlyRevenue: MonthlyRevenueRow[]
+}
 
-export default function RevenueManagement() {
+const formatCurrency = (value: number): string =>
+  `${value.toLocaleString("vi-VN")}đ`
+
+const formatCompactCurrency = (value: number): string => {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toLocaleString("vi-VN", {
+      maximumFractionDigits: 1,
+    })} triệu`
+  }
+  return formatCurrency(value)
+}
+
+export default function RevenueManagement({
+  currentMonthRevenue,
+  previousMonthRevenue,
+  growthRate,
+  revenueByType,
+  monthlyRevenue,
+}: RevenueManagementProps) {
+  const stats = [
+    {
+      label: "Doanh thu tháng này",
+      value: formatCompactCurrency(currentMonthRevenue),
+      icon: DollarSign,
+      trend: `${growthRate >= 0 ? "+" : ""}${growthRate.toFixed(1)}%`,
+    },
+    {
+      label: "Doanh thu tháng trước",
+      value: formatCompactCurrency(previousMonthRevenue),
+      icon: DollarSign,
+      trend: null,
+    },
+    {
+      label: "Tăng trưởng",
+      value: `${growthRate >= 0 ? "+" : ""}${growthRate.toFixed(1)}%`,
+      icon: TrendingUp,
+      trend: null,
+    },
+  ]
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Quản lý Doanh thu
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Theo dõi và phân tích doanh thu hệ thống
-          </p>
-        </div>
-        <Button>
-          <Download className="mr-2 h-4 w-4" />
-          Xuất báo cáo
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">
+          Quản lý doanh thu
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Theo dõi doanh thu hệ thống từ đơn bán, đơn thuê và đặt may.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -75,7 +91,13 @@ export default function RevenueManagement() {
                   {stat.value}
                 </div>
                 {stat.trend && (
-                  <p className="mt-2 text-sm text-emerald-600">{stat.trend}</p>
+                  <p
+                    className={`mt-2 text-sm ${
+                      growthRate >= 0 ? "text-emerald-600" : "text-destructive"
+                    }`}
+                  >
+                    {stat.trend}
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -99,17 +121,17 @@ export default function RevenueManagement() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">
-                    {item.percent}%
+                    {item.percent.toFixed(1)}%
                   </span>
                   <span className="font-bold text-foreground">
-                    {item.amount}
+                    {formatCurrency(item.amount)}
                   </span>
                 </div>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={`h-full ${item.color}`}
-                  style={{ width: `${item.percent}%` }}
+                  style={{ width: `${Math.min(item.percent, 100)}%` }}
                 />
               </div>
             </div>
@@ -131,15 +153,16 @@ export default function RevenueManagement() {
                 <div className="flex items-center gap-4">
                   <Badge variant="secondary">{item.month}</Badge>
                   <span className="font-semibold text-foreground">
-                    {item.amount}
+                    {formatCurrency(item.amount)}
                   </span>
                 </div>
-                {index > 0 && (
-                  <div className="flex items-center gap-1 text-sm text-emerald-600">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Tăng</span>
-                  </div>
-                )}
+                {index > 0 &&
+                  item.amount >= (monthlyRevenue[index - 1]?.amount ?? 0) && (
+                    <div className="flex items-center gap-1 text-sm text-emerald-600">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Tăng</span>
+                    </div>
+                  )}
               </div>
             ))}
           </div>
