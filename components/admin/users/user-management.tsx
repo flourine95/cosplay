@@ -12,16 +12,6 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { UserRole, UserStatus } from "@/app/generated/prisma/enums"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,16 +46,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import type {
-  AdminUserCreateInput,
-  AdminUserUpdateInput,
-} from "@/schemas/admin-user"
 import {
   adminUserCreateSchema,
   adminUserUpdateSchema,
+  type AdminUserCreateInput,
+  type AdminUserUpdateInput,
 } from "@/schemas/admin-user"
-
-const EMPTY_USERS: AdminUser[] = []
 
 type AdminUser = {
   id: number
@@ -92,21 +78,12 @@ type UsersResponse = {
   }
 }
 
-type UserDialogMode = "create" | "edit"
-
-const isUsersResponse = (value: unknown): value is UsersResponse => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "data" in value &&
-    typeof (value as UsersResponse).data === "object"
-  )
-}
+type DialogMode = "create" | "edit"
 
 const roleLabels: Record<UserRole, string> = {
-  [UserRole.ADMIN]: "Admin",
+  [UserRole.ADMIN]: "Quản trị viên",
   [UserRole.SELLER]: "Seller",
-  [UserRole.CUSTOMER]: "Customer",
+  [UserRole.CUSTOMER]: "Người mua",
 }
 
 const statusLabels: Record<UserStatus, string> = {
@@ -116,15 +93,7 @@ const statusLabels: Record<UserStatus, string> = {
   [UserStatus.PENDING_VERIFICATION]: "Chờ xác minh",
 }
 
-const formatCurrency = (value: number): string => {
-  return `${value.toLocaleString("vi-VN")}đ`
-}
-
-const formatDate = (value: string): string => {
-  return new Intl.DateTimeFormat("vi-VN").format(new Date(value))
-}
-
-const emptyCreateForm: AdminUserCreateInput = {
+const emptyForm: AdminUserCreateInput = {
   name: "",
   email: "",
   password: "",
@@ -133,12 +102,17 @@ const emptyCreateForm: AdminUserCreateInput = {
   status: UserStatus.ACTIVE,
 }
 
-const getUserPayload = (
+const formatCurrency = (value: number): string =>
+  `${value.toLocaleString("vi-VN")}đ`
+
+const formatDate = (value: string): string =>
+  new Intl.DateTimeFormat("vi-VN").format(new Date(value))
+
+const getPayload = (
   form: AdminUserCreateInput,
-  mode: UserDialogMode
+  mode: DialogMode
 ): AdminUserCreateInput | AdminUserUpdateInput => {
   if (mode === "create") return form
-
   return {
     name: form.name,
     email: form.email,
@@ -148,31 +122,37 @@ const getUserPayload = (
   }
 }
 
+const getErrorMessage = (value: unknown, fallback: string): string => {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "error" in value &&
+    typeof value.error === "string"
+  ) {
+    return value.error
+  }
+  return fallback
+}
+
 export default function UserManagement() {
   const queryClient = useQueryClient()
   const [filterRole, setFilterRole] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
-  const [dialogMode, setDialogMode] = useState<UserDialogMode>("create")
+  const [mode, setMode] = useState<DialogMode>("create")
   const [editingUserId, setEditingUserId] = useState<number | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [form, setForm] = useState<AdminUserCreateInput>(emptyCreateForm)
+  const [form, setForm] = useState<AdminUserCreateInput>(emptyForm)
   const [formError, setFormError] = useState<string | null>(null)
-  const [statusTarget, setStatusTarget] = useState<AdminUser | null>(null)
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
       const res = await fetch("/api/admin/users")
-      const json = (await res.json()) as unknown
-      if (!res.ok || !isUsersResponse(json)) {
-        const message =
-          typeof json === "object" &&
-          json !== null &&
-          "error" in json &&
-          typeof json.error === "string"
-            ? json.error
-            : "Không thể tải danh sách người dùng"
-        throw new Error(message)
+      const json = (await res.json()) as UsersResponse | { error?: string }
+      if (!res.ok || !("data" in json)) {
+        throw new Error(
+          getErrorMessage(json, "Không thể tải danh sách người dùng")
+        )
       }
       return json.data
     },
@@ -180,13 +160,24 @@ export default function UserManagement() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = getUserPayload(form, dialogMode)
+      const payload = getPayload(form, mode)
+      const parsed =
+        mode === "create"
+          ? adminUserCreateSchema.safeParse(payload)
+          : adminUserUpdateSchema.safeParse(payload)
+
+      if (!parsed.success) {
+        throw new Error(
+          parsed.error.issues[0]?.message ?? "Dữ liệu người dùng không hợp lệ"
+        )
+      }
+
       const url =
-        dialogMode === "edit" && editingUserId
+        mode === "edit" && editingUserId
           ? `/api/admin/users/${editingUserId}`
           : "/api/admin/users"
       const res = await fetch(url, {
-        method: dialogMode === "edit" ? "PATCH" : "POST",
+        method: mode === "edit" ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
@@ -196,12 +187,16 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       toast.success(
-        dialogMode === "edit" ? "Đã cập nhật người dùng" : "Đã thêm người dùng"
+        mode === "edit" ? "Đã cập nhật người dùng" : "Đã thêm người dùng"
       )
       setIsDialogOpen(false)
+      setFormError(null)
       queryClient.invalidateQueries({ queryKey: ["admin-users"] })
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => {
+      setFormError(error.message)
+      toast.error(error.message)
+    },
   })
 
   const statusMutation = useMutation({
@@ -230,52 +225,49 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       toast.success("Đã cập nhật trạng thái")
-      setStatusTarget(null)
       queryClient.invalidateQueries({ queryKey: ["admin-users"] })
     },
     onError: (error) => toast.error(error.message),
   })
 
-  const usersData = usersQuery.data
-  const usersList = usersData?.users ?? EMPTY_USERS
-
   const filteredUsers = useMemo(() => {
-    return usersList.filter((user) => {
+    const users = usersQuery.data?.users ?? []
+    return users.filter((user) => {
       const roleMatched = filterRole === "all" || user.role === filterRole
       const statusMatched =
         filterStatus === "all" || user.status === filterStatus
       return roleMatched && statusMatched
     })
-  }, [filterRole, filterStatus, usersList])
+  }, [filterRole, filterStatus, usersQuery.data?.users])
 
   const stats = [
     {
-      label: "Tổng user",
-      value: usersData?.stats.total ?? 0,
+      label: "Tổng người dùng",
+      value: usersQuery.data?.stats.total ?? 0,
       icon: Users,
     },
     {
-      label: "User mới tháng này",
-      value: usersData?.stats.newThisMonth ?? 0,
+      label: "Mới trong tháng",
+      value: usersQuery.data?.stats.newThisMonth ?? 0,
       icon: TrendingUp,
     },
     {
-      label: "Bị khóa",
-      value: usersData?.stats.suspended ?? 0,
+      label: "Đang bị khóa",
+      value: usersQuery.data?.stats.suspended ?? 0,
       icon: Ban,
     },
   ]
 
   const handleOpenCreate = () => {
-    setDialogMode("create")
+    setMode("create")
     setEditingUserId(null)
-    setForm(emptyCreateForm)
+    setForm(emptyForm)
     setFormError(null)
     setIsDialogOpen(true)
   }
 
   const handleOpenEdit = (user: AdminUser) => {
-    setDialogMode("edit")
+    setMode("edit")
     setEditingUserId(user.id)
     setForm({
       name: user.name,
@@ -291,22 +283,6 @@ export default function UserManagement() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setFormError(null)
-
-    const payload = getUserPayload(form, dialogMode)
-    const parsed =
-      dialogMode === "create"
-        ? adminUserCreateSchema.safeParse(payload)
-        : adminUserUpdateSchema.safeParse(payload)
-
-    if (!parsed.success) {
-      const message =
-        parsed.error.issues[0]?.message ?? "Dữ liệu người dùng không hợp lệ"
-      setFormError(message)
-      toast.error(message)
-      return
-    }
-
     saveMutation.mutate()
   }
 
@@ -315,15 +291,15 @@ export default function UserManagement() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Quản lý Người dùng
+            Quản lý người dùng
           </h1>
           <p className="text-sm text-muted-foreground">
-            Xem danh sách, phân quyền và trạng thái hoạt động.
+            Tạo tài khoản, phân quyền và khóa/mở khóa người dùng.
           </p>
         </div>
         <Button onClick={handleOpenCreate}>
           <UserPlus className="h-4 w-4" />
-          Thêm user mới
+          Thêm người dùng
         </Button>
       </div>
 
@@ -352,20 +328,22 @@ export default function UserManagement() {
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={filterRole} onValueChange={setFilterRole}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Lọc theo vai trò" />
+          <SelectTrigger className="w-[190px]">
+            <SelectValue placeholder="Lọc vai trò" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả vai trò</SelectItem>
-            <SelectItem value={UserRole.CUSTOMER}>Customer</SelectItem>
-            <SelectItem value={UserRole.SELLER}>Seller</SelectItem>
-            <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+            {Object.values(UserRole).map((role) => (
+              <SelectItem key={role} value={role}>
+                {roleLabels[role]}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[190px]">
-            <SelectValue placeholder="Lọc theo trạng thái" />
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Lọc trạng thái" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả trạng thái</SelectItem>
@@ -378,7 +356,7 @@ export default function UserManagement() {
         </Select>
 
         <span className="text-sm text-muted-foreground">
-          {filteredUsers.length} users
+          {filteredUsers.length} người dùng
         </span>
       </div>
 
@@ -390,7 +368,7 @@ export default function UserManagement() {
                 <TableHead>Người dùng</TableHead>
                 <TableHead>Vai trò</TableHead>
                 <TableHead>Trạng thái</TableHead>
-                <TableHead className="text-center">Giao dịch</TableHead>
+                <TableHead className="text-center">Đơn hàng</TableHead>
                 <TableHead>Tổng chi</TableHead>
                 <TableHead>Ngày tham gia</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
@@ -480,10 +458,19 @@ export default function UserManagement() {
                               ? ""
                               : "text-destructive focus:text-destructive"
                           }
-                          onClick={() => setStatusTarget(user)}
+                          disabled={statusMutation.isPending}
+                          onClick={() =>
+                            statusMutation.mutate({
+                              user,
+                              status:
+                                user.status === UserStatus.SUSPENDED
+                                  ? UserStatus.ACTIVE
+                                  : UserStatus.SUSPENDED,
+                            })
+                          }
                         >
                           {user.status === UserStatus.SUSPENDED
-                            ? "Mở khóa tài khoản"
+                            ? "Mở khóa"
                             : "Khóa tài khoản"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -501,7 +488,7 @@ export default function UserManagement() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>
-                {dialogMode === "edit" ? "Chỉnh sửa user" : "Thêm user mới"}
+                {mode === "edit" ? "Chỉnh sửa người dùng" : "Thêm người dùng"}
               </DialogTitle>
             </DialogHeader>
 
@@ -555,7 +542,7 @@ export default function UserManagement() {
               />
             </div>
 
-            {dialogMode === "create" && (
+            {mode === "create" && (
               <div className="space-y-2">
                 <Label htmlFor="password">Mật khẩu</Label>
                 <Input
@@ -640,51 +627,6 @@ export default function UserManagement() {
           </form>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog
-        open={!!statusTarget}
-        onOpenChange={(open) => {
-          if (!open) setStatusTarget(null)
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {statusTarget?.status === UserStatus.SUSPENDED
-                ? "Mở khóa tài khoản?"
-                : "Khóa tài khoản?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {statusTarget?.status === UserStatus.SUSPENDED
-                ? `Người dùng ${statusTarget.name} sẽ có thể đăng nhập lại.`
-                : `Người dùng ${statusTarget?.name ?? ""} sẽ bị đăng xuất khỏi mọi phiên và không thể đăng nhập.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction
-              variant={
-                statusTarget?.status === UserStatus.SUSPENDED
-                  ? "default"
-                  : "destructive"
-              }
-              disabled={statusMutation.isPending}
-              onClick={() => {
-                if (!statusTarget) return
-                statusMutation.mutate({
-                  user: statusTarget,
-                  status:
-                    statusTarget.status === UserStatus.SUSPENDED
-                      ? UserStatus.ACTIVE
-                      : UserStatus.SUSPENDED,
-                })
-              }}
-            >
-              {statusMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

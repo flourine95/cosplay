@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Package, Pencil, Plus } from "lucide-react"
+import { ProductStatusSelect } from "@/components/admin/products/product-status-select"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { prisma } from "@/lib/prisma"
@@ -12,7 +13,7 @@ export default async function AdminProductsPage() {
       variants: { select: { stock: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 50,
   })
 
   return (
@@ -20,10 +21,11 @@ export default async function AdminProductsPage() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Quản lý sản phẩm
+            Kiểm duyệt sản phẩm
           </h1>
           <p className="text-sm text-muted-foreground">
-            Xem sản phẩm mới nhất và thêm sản phẩm vào marketplace.
+            Tạo, sửa và cập nhật trạng thái hiển thị của sản phẩm trên
+            marketplace.
           </p>
         </div>
         <Button asChild>
@@ -36,7 +38,7 @@ export default async function AdminProductsPage() {
 
       <Card className="border-border/60">
         <CardHeader>
-          <CardTitle>Danh sách gần đây</CardTitle>
+          <CardTitle>Danh sách sản phẩm</CardTitle>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
@@ -48,10 +50,11 @@ export default async function AdminProductsPage() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-border/60">
-              <div className="grid grid-cols-[1fr_140px_140px_120px_80px] gap-4 border-b border-border/60 bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground">
+              <div className="grid grid-cols-[1fr_140px_140px_150px_100px_80px] gap-4 border-b border-border/60 bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground">
                 <span>Sản phẩm</span>
                 <span>Danh mục</span>
                 <span>Seller</span>
+                <span>Trạng thái</span>
                 <span className="text-right">Tồn kho</span>
                 <span className="text-right">Sửa</span>
               </div>
@@ -64,14 +67,14 @@ export default async function AdminProductsPage() {
                 return (
                   <div
                     key={product.id}
-                    className="grid grid-cols-[1fr_140px_140px_120px_80px] gap-4 border-b border-border/40 px-4 py-3 text-sm last:border-b-0"
+                    className="grid grid-cols-[1fr_140px_140px_150px_100px_80px] items-center gap-4 border-b border-border/40 px-4 py-3 text-sm last:border-b-0"
                   >
                     <div>
                       <p className="font-medium text-foreground">
                         {product.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {product.slug} · {product.status}
+                        {product.slug}
                       </p>
                     </div>
                     <span className="text-muted-foreground">
@@ -80,6 +83,10 @@ export default async function AdminProductsPage() {
                     <span className="text-muted-foreground">
                       {product.seller.shopName ?? product.seller.name}
                     </span>
+                    <ProductStatusSelect
+                      productId={product.id}
+                      status={product.status}
+                    />
                     <span className="text-right font-medium">{totalStock}</span>
                     <span className="text-right">
                       <Button variant="ghost" size="icon-sm" asChild>
