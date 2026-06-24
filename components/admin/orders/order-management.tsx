@@ -1,134 +1,105 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { AlertCircle, Clock, ShoppingCart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  ShoppingCart,
-  Clock,
-  AlertCircle,
-  MoreHorizontal,
-  Loader2,
-} from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { orders as mockOrders } from "./orders.data"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
-const statusLabels: Record<string, string> = {
-  Ongoing: "Đang thuê",
-  Returned: "Đã trả",
-  Processing: "Đang may",
-  Overdue: "Quá hạn",
-  Pending_Measurement: "Chờ số đo",
-}
-
-interface OrderDisplay {
+type AdminOrderRow = {
   id: string
   customer: string
-  type: string
+  seller: string
+  type: "Mua hàng" | "Đặt may" | "Thuê đồ"
   item: string
-  amount: string
-  status:
-    | "Ongoing"
-    | "Returned"
-    | "Processing"
-    | "Overdue"
-    | "Pending_Measurement"
-  dateRange?: string
-  progress?: number
-  deadline: string
+  amount: number
+  status: string
+  createdAt: Date
+  deadline?: Date | null
 }
 
-export default function OrderManagement() {
-  const [ordersList, setOrdersList] = useState<OrderDisplay[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [filterType, setFilterType] = useState("all")
+interface OrderManagementProps {
+  orders: AdminOrderRow[]
+}
 
-  useEffect(() => {
-    async function loadOrders() {
-      try {
-        setIsLoading(true)
-        const res = await fetch("/api/admin/orders")
-        if (!res.ok) {
-          throw new Error("Không thể lấy danh sách đơn hàng thực tế")
-        }
-        const data = await res.json()
-        setOrdersList(data.orders || [])
-      } catch (err) {
-        console.error(err)
-        // Fallback to mock orders in case of error (for demo safety)
-        setOrdersList(mockOrders as OrderDisplay[])
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    loadOrders()
-  }, [])
+const formatCurrency = (value: number): string =>
+  `${value.toLocaleString("vi-VN")}đ`
 
-  const filteredOrders =
-    filterType === "all"
-      ? ordersList
-      : ordersList.filter((o) => o.type.toLowerCase() === filterType)
+const formatDate = (value: Date): string =>
+  new Intl.DateTimeFormat("vi-VN").format(value)
 
-  // Compute dynamic stats
-  const totalCount = ordersList.length
-  const processingCount = ordersList.filter(
-    (o) =>
-      o.status === "Processing" ||
-      o.status === "Ongoing" ||
-      o.status === "Pending_Measurement"
+const getStatusVariant = (
+  status: string
+): "default" | "secondary" | "destructive" | "outline" => {
+  if (["CANCELLED", "REFUNDED", "OVERDUE", "REJECTED"].includes(status)) {
+    return "destructive"
+  }
+  if (["COMPLETED", "DELIVERED", "RETURNED"].includes(status)) {
+    return "default"
+  }
+  if (["PENDING", "SUBMITTED", "DRAFT"].includes(status)) {
+    return "secondary"
+  }
+  return "outline"
+}
+
+const statusLabels: Record<string, string> = {
+  PENDING: "Chờ xử lý",
+  CONFIRMED: "Đã xác nhận",
+  PROCESSING: "Đang xử lý",
+  SHIPPING: "Đang giao",
+  DELIVERED: "Đã giao",
+  COMPLETED: "Hoàn tất",
+  CANCELLED: "Đã hủy",
+  REFUNDED: "Đã hoàn tiền",
+  DRAFT: "Nháp",
+  SUBMITTED: "Đã gửi yêu cầu",
+  QUOTED: "Đã báo giá",
+  QUOTE_ACCEPTED: "Đã nhận báo giá",
+  DEPOSIT_PAID: "Đã đặt cọc",
+  IN_PROGRESS: "Đang thực hiện",
+  REVISION_REQUESTED: "Yêu cầu chỉnh sửa",
+  READY: "Sẵn sàng bàn giao",
+  READY_FOR_PICKUP: "Sẵn sàng nhận đồ",
+  RENTED: "Đang thuê",
+  RETURNED: "Đã trả đồ",
+  DEPOSIT_REFUNDED: "Đã hoàn cọc",
+  OVERDUE: "Quá hạn",
+}
+
+export default function OrderManagement({ orders }: OrderManagementProps) {
+  const activeCount = orders.filter(
+    (order) =>
+      !["COMPLETED", "CANCELLED", "REFUNDED", "RETURNED"].includes(order.status)
   ).length
-  const overdueCount = ordersList.filter((o) => o.status === "Overdue").length
+  const overdueCount = orders.filter(
+    (order) => order.status === "OVERDUE"
+  ).length
+  const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0)
 
   const stats = [
     {
       label: "Tổng đơn hàng",
-      value: totalCount.toString(),
+      value: orders.length,
       icon: ShoppingCart,
     },
-    { label: "Đang xử lý", value: processingCount.toString(), icon: Clock },
-    { label: "Quá hạn", value: overdueCount.toString(), icon: AlertCircle },
+    { label: "Đang xử lý", value: activeCount, icon: Clock },
+    { label: "Quá hạn", value: overdueCount, icon: AlertCircle },
   ]
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">
-          Đang tải dữ liệu đơn hàng...
-        </span>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Quản lý Đơn hàng (Dữ liệu thực tế)
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Theo dõi đơn thuê và đơn đặt may từ cơ sở dữ liệu
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Quản lý đơn hàng</h1>
+        <p className="text-sm text-muted-foreground">
+          Theo dõi đơn mua, đơn đặt may và đơn thuê đồ cosplay.
+        </p>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => {
           const Icon = stat.icon
@@ -152,123 +123,66 @@ export default function OrderManagement() {
         })}
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Lọc theo loại" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="rent">Đơn thuê</SelectItem>
-            <SelectItem value="tailor">Đơn đặt may</SelectItem>
-          </SelectContent>
-        </Select>
-        <span className="text-sm text-muted-foreground">
-          {filteredOrders.length} đơn hàng
-        </span>
-      </div>
-
-      {/* Orders List */}
-      <div className="space-y-4">
-        {filteredOrders.length === 0 ? (
-          <Card className="border-dashed p-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Không có đơn hàng nào khớp với bộ lọc.
-            </p>
-          </Card>
-        ) : (
-          filteredOrders.map((order) => (
-            <Card key={order.id} className="border-border/60">
-              <CardContent className="p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  {/* Left: Order Info */}
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{order.id}</Badge>
-                      <Badge variant="secondary">
-                        {order.type === "Rent" ? "Thuê" : "Đặt may"}
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle>Tổng giá trị đơn: {formatCurrency(totalAmount)}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mã đơn</TableHead>
+                <TableHead>Loại</TableHead>
+                <TableHead>Khách hàng</TableHead>
+                <TableHead>Seller</TableHead>
+                <TableHead>Sản phẩm/Yêu cầu</TableHead>
+                <TableHead>Giá trị</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Ngày tạo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Chưa có đơn hàng nào.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                orders.map((order) => (
+                  <TableRow key={`${order.type}-${order.id}`}>
+                    <TableCell className="font-semibold text-foreground">
+                      {order.id}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{order.type}</Badge>
+                    </TableCell>
+                    <TableCell>{order.customer}</TableCell>
+                    <TableCell>{order.seller}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {order.item}
+                    </TableCell>
+                    <TableCell className="font-semibold text-foreground">
+                      {formatCurrency(order.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(order.status)}>
+                        {statusLabels[order.status] ?? order.status}
                       </Badge>
-                      <Badge
-                        variant={
-                          order.status === "Ongoing" ||
-                          order.status === "Processing"
-                            ? "default"
-                            : order.status === "Returned"
-                              ? "secondary"
-                              : "destructive"
-                        }
-                      >
-                        {statusLabels[order.status]}
-                      </Badge>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        {order.item}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Khách hàng: {order.customer}
-                      </p>
-                    </div>
-
-                    {order.dateRange && (
-                      <p className="text-sm text-muted-foreground">
-                        Thời gian: {order.dateRange}
-                      </p>
-                    )}
-
-                    {order.progress !== undefined && (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            Tiến độ may
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            {order.progress}%
-                          </span>
-                        </div>
-                        <Progress value={order.progress} className="h-2" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right: Amount & Actions */}
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Tổng tiền</p>
-                      <p className="text-lg font-bold text-foreground">
-                        {order.amount}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {order.deadline}
-                      </p>
-                    </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-                        <DropdownMenuItem>Cập nhật trạng thái</DropdownMenuItem>
-                        <DropdownMenuItem>Liên hệ khách hàng</DropdownMenuItem>
-                        {order.status === "Overdue" && (
-                          <DropdownMenuItem className="text-destructive">
-                            Xử lý quá hạn
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(order.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }
