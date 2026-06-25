@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
-import { getProduct, getRelated } from "@/lib/products"
+import { prisma } from "@/lib/prisma"
+import { mapDbProductToFrontendProduct } from "@/lib/products-server"
 import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
 import { ProductGallery } from "@/components/product/product-gallery"
@@ -21,11 +22,42 @@ type Props = {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params
-  const product = getProduct(slug)
 
-  if (!product) notFound()
+  const dbProduct = await prisma.product.findUnique({
+    where: {
+      slug,
+      status: "ACTIVE",
+    },
+    include: {
+      images: true,
+      category: true,
+      rentalItem: true,
+      variants: true,
+      reviews: true,
+      seller: true,
+    },
+  })
 
-  const related = getRelated(slug)
+  if (!dbProduct) notFound()
+
+  const product = mapDbProductToFrontendProduct(dbProduct)
+
+  const dbRelated = await prisma.product.findMany({
+    where: {
+      categoryId: dbProduct.categoryId,
+      id: { not: dbProduct.id },
+      status: "ACTIVE",
+    },
+    take: 4,
+    include: {
+      images: true,
+      category: true,
+      rentalItem: true,
+      variants: true,
+    },
+  })
+
+  const related = dbRelated.map(mapDbProductToFrontendProduct)
 
   return (
     <div className="min-h-screen bg-background">

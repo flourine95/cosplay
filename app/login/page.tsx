@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react"
 import { useForm } from "react-hook-form"
@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label"
 import { loginSchema, type LoginInput } from "@/schemas/auth"
 import { useAuth } from "@/stores/auth-store"
 
-export default function LoginPage() {
+function LoginContent() {
   const { login } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -215,5 +215,21 @@ export default function LoginPage() {
         </p>
       </form>
     </AuthShell>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="animate-pulse text-sm text-muted-foreground">
+            Đang tải...
+          </div>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }

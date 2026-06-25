@@ -102,7 +102,11 @@ export function useCheckout() {
         (sum, item) => sum + item.price * item.quantity,
         0
       )
-      const shippingCost = 35000
+      const uniqueSellers = new Set(
+        cartItems.map((item) => item.sellerId).filter(Boolean)
+      )
+      const sellerCount = uniqueSellers.size || 1
+      const shippingCost = sellerCount * 35000
       const totalAmount = totalPrice + shippingCost
 
       const res = await fetch("/api/orders", {
@@ -153,7 +157,11 @@ export function useCheckout() {
     (sum, item) => sum + item.price * item.quantity,
     0
   )
-  const shippingCost = cartItems.length > 0 ? 35000 : 0
+  const uniqueSellers = new Set(
+    cartItems.map((item) => item.sellerId).filter(Boolean)
+  )
+  const sellerCount = uniqueSellers.size
+  const shippingCost = sellerCount * 35000
   const finalTotal = totalPrice + shippingCost
 
   return {
