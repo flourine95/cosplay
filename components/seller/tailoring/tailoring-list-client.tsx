@@ -31,8 +31,6 @@ import type React from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-export type TailoringOrder = unknown
-
 type CustomOrder = {
   id: number
   orderNumber: string
@@ -136,7 +134,7 @@ const formatDate = (value: string) =>
     timeStyle: "short",
   }).format(new Date(value))
 
-export function TailoringSectionNew() {
+export function TailoringListClient() {
   const [data, setData] = useState<CustomOrdersResponse | null>(null)
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
   const [replyText, setReplyText] = useState("")

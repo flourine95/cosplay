@@ -15,7 +15,6 @@ import {
   Truck,
   Wallet,
 } from "lucide-react"
-import { TailoringOrder } from "./section/tailoring-section"
 
 export const sellerNavItems = [
   { title: "Tổng quan", href: "/seller", icon: Gauge },
@@ -171,7 +170,7 @@ export const orderDetails = [
   { name: "Đầm cổ áo polo", desc: "Yêu cầu đặt cọc", qty: "1 món" },
 ]
 
-export const tailoringOrders: TailoringOrder[] = [
+export const tailoringOrders = [
   {
     id: "TAIL-001",
     customer: "Nguyễn Lan",
