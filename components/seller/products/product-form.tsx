@@ -3,13 +3,14 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, CheckCircle2, CircleAlert, Save } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 
 import { ProductType } from "@/app/generated/prisma/enums"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { formatCurrency } from "@/lib/format"
 import { slugify } from "@/lib/slug"
+import { cn } from "@/lib/utils"
 import type { SellerProductFormValues } from "@/schemas/seller-product"
 import { sellerProductSchema } from "@/schemas/seller-product"
 import { sellerProductRoutes } from "./product-constants"
@@ -69,8 +71,14 @@ export function SellerProductForm({ productId }: { productId?: number }) {
   const imageUrls = useWatch({ control, name: "imageUrls" }) ?? []
   const watchedName = useWatch({ control, name: "name" })
   const watchedPrice = useWatch({ control, name: "price" })
+  const watchedRentalDeposit = useWatch({
+    control,
+    name: "rentalDepositAmount",
+  })
+  const watchedRentalPrice = useWatch({ control, name: "rentalPricePerDay" })
   const watchedSlug = useWatch({ control, name: "slug" })
   const watchedType = useWatch({ control, name: "type" })
+  const variants = useWatch({ control, name: "variants" }) ?? []
   const hasRental =
     watchedType === ProductType.RENTAL || watchedType === ProductType.BOTH
   const price = Number(watchedPrice || 0)
@@ -280,10 +288,22 @@ export function SellerProductForm({ productId }: { productId?: number }) {
               setValue={setValue}
             />
           </ProductFormCard>
+          <ProductReadinessCard
+            hasImage={imageUrls.length > 0}
+            hasName={Boolean(watchedName?.trim())}
+            hasPrice={price > 0}
+            hasRental={hasRental}
+            hasRentalConfig={
+              !hasRental ||
+              (Number(watchedRentalPrice || 0) > 0 &&
+                Number(watchedRentalDeposit || 0) > 0)
+            }
+            hasStock={variants.some((variant) => Number(variant.stock) > 0)}
+          />
         </aside>
       </div>
 
-      <div className="fixed right-0 bottom-0 z-40 flex w-full border-t border-border bg-background/90 p-4 backdrop-blur-md lg:w-[calc(100%-16rem)]">
+      <div className="fixed right-0 bottom-0 z-40 flex w-full border-t border-border/80 bg-card/95 p-4 backdrop-blur-md lg:w-[calc(100%-16rem)]">
         <div className="mx-auto flex w-full max-w-[1280px] items-center justify-end gap-3 px-4 lg:px-10">
           <Button type="button" variant="outline" asChild>
             <Link href={sellerProductRoutes.list}>Hủy bỏ</Link>
@@ -310,7 +330,7 @@ function ProductFormCard({
   title?: string
 }) {
   return (
-    <Card className={className}>
+    <Card className={cn("border-border/80 bg-card", className)}>
       {(title || description) && (
         <CardHeader>
           {title && <CardTitle>{title}</CardTitle>}
@@ -318,6 +338,71 @@ function ProductFormCard({
         </CardHeader>
       )}
       <CardContent>{children}</CardContent>
+    </Card>
+  )
+}
+
+function ProductReadinessCard({
+  hasImage,
+  hasName,
+  hasPrice,
+  hasRental,
+  hasRentalConfig,
+  hasStock,
+}: {
+  hasImage: boolean
+  hasName: boolean
+  hasPrice: boolean
+  hasRental: boolean
+  hasRentalConfig: boolean
+  hasStock: boolean
+}) {
+  const checks = [
+    { label: "Có tên sản phẩm", done: hasName },
+    { label: "Có ít nhất 1 ảnh", done: hasImage },
+    { label: "Có tồn kho theo size", done: hasStock },
+    { label: "Có giá bán", done: hasPrice },
+    ...(hasRental
+      ? [{ label: "Đã cấu hình giá thuê/cọc", done: hasRentalConfig }]
+      : []),
+  ]
+  const remaining = checks.filter((check) => !check.done).length
+
+  return (
+    <Card className="sticky top-[20rem] border-border/80 bg-muted/25">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle>Sẵn sàng hiển thị</CardTitle>
+            <CardDescription>
+              Checklist nhanh trước khi chuyển sang Hoạt động.
+            </CardDescription>
+          </div>
+          <Badge variant={remaining === 0 ? "secondary" : "outline"}>
+            {remaining === 0 ? "Đủ" : `${remaining} thiếu`}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col gap-2">
+          {checks.map((check) => (
+            <li
+              key={check.label}
+              className={cn(
+                "flex items-center gap-2 text-sm",
+                check.done ? "text-foreground" : "text-foreground/65"
+              )}
+            >
+              {check.done ? (
+                <CheckCircle2 className="size-4 text-primary" />
+              ) : (
+                <CircleAlert className="size-4 text-muted-foreground" />
+              )}
+              {check.label}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
     </Card>
   )
 }

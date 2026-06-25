@@ -181,9 +181,9 @@ export function ProductListClient() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ProductStats stats={stats} />
+      <ProductStats products={products} stats={stats} />
 
-      <Card className="border-border/60">
+      <Card className="border-border/80 bg-card">
         <CardHeader>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -255,41 +255,44 @@ function ProductToolbar({
     query.trim().length > 0 || statusFilter !== "all" || typeFilter !== "all"
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full lg:max-w-sm">
+    <div className="rounded-xl border border-border/70 bg-muted/25 p-3">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <div className="relative w-full xl:max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Tìm theo tên, SKU hoặc danh mục"
-            className="pl-8"
+            className="bg-background pl-8"
           />
         </div>
-        {hasFilters && (
-          <Button type="button" variant="ghost" onClick={onClearFilters}>
-            Xóa bộ lọc
-          </Button>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-        <FilterGroup
-          ariaLabel="Lọc theo trạng thái"
-          value={statusFilter}
-          options={statusFilters}
-          onValueChange={(value) => {
-            if (value) onStatusFilterChange(value as ProductStatusFilter)
-          }}
-        />
-        <FilterGroup
-          ariaLabel="Lọc theo mô hình kinh doanh"
-          value={typeFilter}
-          options={typeFilters}
-          onValueChange={(value) => {
-            if (value) onTypeFilterChange(value as ProductTypeFilter)
-          }}
-        />
+        <div className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <FilterGroup
+            ariaLabel="Lọc theo trạng thái"
+            value={statusFilter}
+            options={statusFilters}
+            onValueChange={(value) => {
+              if (value) onStatusFilterChange(value as ProductStatusFilter)
+            }}
+          />
+          <FilterGroup
+            ariaLabel="Lọc theo mô hình kinh doanh"
+            value={typeFilter}
+            options={typeFilters}
+            onValueChange={(value) => {
+              if (value) onTypeFilterChange(value as ProductTypeFilter)
+            }}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onClearFilters}
+          disabled={!hasFilters}
+          className="self-start lg:self-auto"
+        >
+          Xóa lọc
+        </Button>
       </div>
     </div>
   )
@@ -313,7 +316,7 @@ function FilterGroup<T extends string>({
       onValueChange={onValueChange}
       variant="outline"
       size="sm"
-      className="max-w-full flex-wrap"
+      className="max-w-full flex-wrap bg-background"
       aria-label={ariaLabel}
     >
       {options.map((option) => (

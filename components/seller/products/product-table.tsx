@@ -72,9 +72,9 @@ export function ProductTable({
   sortField,
 }: ProductTableProps) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border/60">
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-background">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-muted/55">
           <TableRow>
             <TableHead>
               <SortButton
@@ -126,7 +126,7 @@ export function ProductTable({
                 <TableCell className="min-w-[280px]">
                   <ProductIdentity product={product} />
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-foreground/85">
                   <div className="flex flex-wrap gap-1">
                     {product.businessTypes.map((type) => (
                       <Badge key={type} variant="secondary">
@@ -135,18 +135,18 @@ export function ProductTable({
                     ))}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-foreground/85">
                   <StockSignal product={product} />
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-foreground/85">
                   <RentalSignal product={product} />
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-foreground/85">
                   <span className="text-sm font-medium">
                     {formatProductPrice(product)}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-foreground/85">
                   <ActionSignal product={product} />
                 </TableCell>
                 <TableCell>
@@ -193,7 +193,7 @@ function ProductIdentity({ product }: { product: SellerProductListItem }) {
       </div>
       <div className="min-w-0">
         <p className="truncate font-medium text-foreground">{product.name}</p>
-        <p className="truncate text-xs text-muted-foreground">
+        <p className="truncate text-xs text-foreground/60">
           SKU: {product.sku || "-"} · {product.categoryName}
         </p>
       </div>
@@ -215,7 +215,7 @@ function ProductRowMenu({
           <MoreHorizontal />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href={`/products/${product.slug}`}>Xem trang khách</Link>
@@ -232,7 +232,7 @@ function ProductRowMenu({
           onClick={() => onDeleteProduct(product)}
         >
           <Trash2 data-icon="inline-start" />
-          Xóa sản phẩm
+          Xóa
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -310,7 +310,7 @@ function StockSignal({ product }: { product: SellerProductListItem }) {
 
 function RentalSignal({ product }: { product: SellerProductListItem }) {
   if (product.type === ProductType.SALE) {
-    return <span className="text-sm text-muted-foreground">Không thuê</span>
+    return <span className="text-sm text-foreground/55">Không thuê</span>
   }
 
   if (product.rented > 0) {
@@ -322,7 +322,7 @@ function RentalSignal({ product }: { product: SellerProductListItem }) {
     )
   }
 
-  return <span className="text-sm text-muted-foreground">Đang trống</span>
+  return <span className="text-sm text-foreground/55">Đang trống</span>
 }
 
 function ActionSignal({ product }: { product: SellerProductListItem }) {
@@ -342,7 +342,7 @@ function ActionSignal({ product }: { product: SellerProductListItem }) {
     return <Badge variant="outline">Thiếu cấu hình thuê</Badge>
   }
 
-  return <span className="text-sm text-muted-foreground">Ổn định</span>
+  return <span className="text-sm text-foreground/35">-</span>
 }
 
 function StatusBadge({ product }: { product: SellerProductListItem }) {
