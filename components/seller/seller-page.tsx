@@ -1,11 +1,11 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { OrderListClient } from "./orders/order-list-client"
+import { ProductListClient } from "./products/product-list-client"
+import { QuoteListClient } from "./quotes/quote-list-client"
 import { CalendarSectionNew } from "./section/calendar-section"
 import { DashboardSectionNew } from "./section/dashboard-section"
-import { OrdersSectionNew } from "./section/orders-section"
-import { ProductListClient } from "./products/product-list-client"
-import { QuotesSectionNew } from "./section/quotes-section"
 import { RevenueSectionNew } from "./section/revenue-section"
 import { StatisticsSectionNew } from "./section/statistics-section"
 import { TailoringSectionNew } from "./section/tailoring-section"
@@ -49,8 +49,8 @@ export function SellerPage({ title, description, type }: SellerPageProps) {
 
       {type === "dashboard" && <DashboardSectionNew />}
       {type === "products" && <ProductListClient />}
-      {type === "orders" && <OrdersSectionNew />}
-      {type === "quotes" && <QuotesSectionNew />}
+      {type === "orders" && <OrderListClient />}
+      {type === "quotes" && <QuoteListClient />}
       {type === "tailoring" && <TailoringSectionNew />}
       {type === "calendar" && <CalendarSectionNew />}
       {type === "revenue" && <RevenueSectionNew />}
