@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import { CalendarSectionNew } from "./section/calendar-section"
 import { DashboardSectionNew } from "./section/dashboard-section"
 import { OrdersSectionNew } from "./section/orders-section"
-import { ProductsSectionNew } from "./section/products-section"
+import { ProductListClient } from "./products/product-list-client"
 import { QuotesSectionNew } from "./section/quotes-section"
 import { RevenueSectionNew } from "./section/revenue-section"
 import { StatisticsSectionNew } from "./section/statistics-section"
@@ -48,7 +48,7 @@ export function SellerPage({ title, description, type }: SellerPageProps) {
       </section>
 
       {type === "dashboard" && <DashboardSectionNew />}
-      {type === "products" && <ProductsSectionNew />}
+      {type === "products" && <ProductListClient />}
       {type === "orders" && <OrdersSectionNew />}
       {type === "quotes" && <QuotesSectionNew />}
       {type === "tailoring" && <TailoringSectionNew />}

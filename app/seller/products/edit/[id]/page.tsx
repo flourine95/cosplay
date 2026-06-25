@@ -1,4 +1,4 @@
-import ProductForm from "@/components/seller/product-form"
+import { SellerProductForm } from "@/components/seller/products/product-form"
 
 export default async function EditProductPage({
   params,
@@ -10,7 +10,7 @@ export default async function EditProductPage({
 
   return (
     <div className="mx-auto max-w-[1280px]">
-      <ProductForm productId={productId} />
+      <SellerProductForm productId={productId} />
     </div>
   )
 }

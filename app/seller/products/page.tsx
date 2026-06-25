@@ -6,11 +6,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { ProductsSectionNew } from "@/components/seller/section/products-section"
+import { ProductListClient } from "@/components/seller/products/product-list-client"
 
 export default function SellerProductsPage() {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -39,7 +39,7 @@ export default function SellerProductsPage() {
       </div>
 
       {/* Products Content */}
-      <ProductsSectionNew />
+      <ProductListClient />
     </div>
   )
 }
