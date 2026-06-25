@@ -84,6 +84,33 @@ const statusConfig: Record<
 function RentalCard({ rental }: { rental: RentalItemType }) {
   const cfg = statusConfig[rental.status]
   const [returnNote, setReturnNote] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const handleReturn = async () => {
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/rental/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderNumber: rental.id,
+          returnNote,
+        }),
+      })
+      if (res.ok) {
+        setOpen(false)
+        window.location.reload()
+      } else {
+        alert("Báo cáo trả đồ không thành công.")
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Đã xảy ra lỗi.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <Card className="overflow-hidden border-border/60 shadow-sm transition-shadow hover:shadow-md">
@@ -186,7 +213,7 @@ function RentalCard({ rental }: { rental: RentalItemType }) {
             </p>
             <div className="flex flex-wrap gap-2">
               {rental.status === "active" && (
-                <Dialog>
+                <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
                     <Button
                       size="sm"
@@ -210,8 +237,12 @@ function RentalCard({ rental }: { rental: RentalItemType }) {
                       className="min-h-[80px] resize-none"
                     />
                     <DialogFooter>
-                      <Button variant="ghost">Hủy</Button>
-                      <Button>Xác nhận đã trả đồ</Button>
+                      <Button variant="ghost" onClick={() => setOpen(false)}>
+                        Hủy
+                      </Button>
+                      <Button onClick={handleReturn} disabled={submitting}>
+                        {submitting ? "Đang xử lý..." : "Xác nhận đã trả đồ"}
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
