@@ -24,6 +24,63 @@ function getPaymentMethodEnum(method: string): PaymentMethod {
   }
 }
 
+// GET /api/orders
+export async function GET() {
+  try {
+    const user = await getSession()
+    if (!user) {
+      return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
+    }
+
+    const dbOrders = await prisma.order.findMany({
+      where: { userId: user.id },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                images: true,
+              },
+            },
+          },
+        },
+        seller: true,
+      },
+      orderBy: { createdAt: "desc" },
+    })
+
+    const orders = dbOrders.map((order) => ({
+      id: order.orderNumber,
+      date: order.createdAt.toISOString(),
+      total: Number(order.total),
+      status: order.status.toLowerCase(), // map backend status to lowercase frontend status
+      shippingAddress: `${order.shippingAddress}, ${order.shippingWard}, ${order.shippingDistrict}, ${order.shippingCity}`,
+      trackingNumber: order.trackingCode || undefined,
+      items: order.items.map((item) => {
+        const image =
+          item.product?.images?.find((img) => img.isPrimary)?.url ||
+          item.product?.images?.[0]?.url ||
+          "/images/placeholder.jpg"
+        return {
+          id: item.id.toString(),
+          name: item.productName,
+          quantity: item.quantity,
+          price: Number(item.price),
+          image: image,
+        }
+      }),
+    }))
+
+    return NextResponse.json({ orders })
+  } catch (error) {
+    console.error("GET /api/orders error:", error)
+    return NextResponse.json(
+      { error: "Không thể tải danh sách đơn hàng" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getSession()
@@ -182,15 +239,25 @@ export async function POST(request: NextRequest) {
             subtotal: itemSubtotal,
           })
 
-          // Reduce variant stock
-          await tx.productVariant.update({
+          // Reduce variant stock atomically
+          const updatedVariant = await tx.productVariant.update({
             where: { id: entry.variant.id },
-            data: { stock: entry.variant.stock - entry.item.quantity },
+            data: {
+              stock: {
+                decrement: entry.item.quantity,
+              },
+            },
           })
+
+          if (updatedVariant.stock < 0) {
+            throw new Error(
+              `Sản phẩm "${entry.product.name}" (Size ${entry.item.size}) không đủ số lượng trong kho`
+            )
+          }
         }
 
         const shippingFee = 35000
-        const tax = Math.round(subtotal * 0.1)
+        const tax = 0
         const total = subtotal + shippingFee + tax
 
         // Create order
@@ -265,6 +332,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("POST /api/orders error:", error)
+    if (error instanceof Error && error.message.includes("không đủ số lượng")) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     return NextResponse.json(
       { error: "Có lỗi xảy ra khi xử lý đơn hàng" },
       { status: 500 }

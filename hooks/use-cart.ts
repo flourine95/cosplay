@@ -15,6 +15,8 @@ export interface CartItem {
   rentDays?: number
   price: number
   quantity: number
+  sellerId?: string
+  shopName?: string
 }
 
 export function useCart() {
@@ -44,6 +46,21 @@ export function useCart() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCart()
+
+    // Listen for changes from other instances of useCart
+    const handleCartUpdate = () => {
+      fetchCart()
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("cart-updated", handleCartUpdate)
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("cart-updated", handleCartUpdate)
+      }
+    }
   }, [fetchCart])
 
   const updateQuantity = async (itemId: string, quantity: number) => {
@@ -65,6 +82,9 @@ export function useCart() {
       if (!res.ok) {
         throw new Error("Không thể cập nhật số lượng trên máy chủ")
       }
+
+      // Notify other instances of useCart
+      window.dispatchEvent(new Event("cart-updated"))
     } catch (err) {
       const error = err as Error
       // Revert state if request fails
@@ -92,6 +112,9 @@ export function useCart() {
           ? `Đã xóa "${itemToRemove.name}" khỏi giỏ hàng`
           : "Đã xóa sản phẩm thành công"
       )
+
+      // Notify other instances of useCart
+      window.dispatchEvent(new Event("cart-updated"))
     } catch (err) {
       const error = err as Error
       // Revert state if request fails
@@ -114,6 +137,9 @@ export function useCart() {
       }
 
       toast.success("Đã xóa toàn bộ giỏ hàng thành công")
+
+      // Notify other instances of useCart
+      window.dispatchEvent(new Event("cart-updated"))
     } catch (err) {
       const error = err as Error
       // Revert state if request fails
@@ -151,7 +177,9 @@ export function useCart() {
       }
 
       toast.success("Đã thêm sản phẩm vào giỏ hàng")
-      await fetchCart() // Refresh cart items in state
+
+      // Notify other instances of useCart
+      window.dispatchEvent(new Event("cart-updated"))
       return true
     } catch (err) {
       const error = err as Error

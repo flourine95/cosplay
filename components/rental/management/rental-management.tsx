@@ -39,60 +39,18 @@ import Image from "next/image"
 
 type RentalStatus = "active" | "pending" | "returning" | "completed"
 
-const rentals = [
-  {
-    id: "RT-88412",
-    status: "active" as RentalStatus,
-    itemName: "Raiden Shogun (Genshin Impact) – Size M + Vũ khí",
-    shopName: "WibuStore",
-    startDate: "25/05/2026",
-    endDate: "28/05/2026",
-    daysLeft: 2,
-    totalPrice: 450000,
-    deposit: 1000000,
-    image:
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=200&h=200&fit=crop",
-  },
-  {
-    id: "RT-88413",
-    status: "pending" as RentalStatus,
-    itemName: "Trang phục Maid truyền thống – Đen/Trắng",
-    shopName: "Cosplay Rental HN",
-    startDate: "10/06/2026",
-    endDate: "12/06/2026",
-    daysLeft: null,
-    totalPrice: 200000,
-    deposit: 500000,
-    image:
-      "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=200&h=200&fit=crop",
-  },
-  {
-    id: "RT-77381",
-    status: "returning" as RentalStatus,
-    itemName: "Hu Tao – Genshin Impact (Full Set)",
-    shopName: "WibuStore",
-    startDate: "18/04/2026",
-    endDate: "21/04/2026",
-    daysLeft: null,
-    totalPrice: 360000,
-    deposit: 800000,
-    image:
-      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&h=200&fit=crop",
-  },
-  {
-    id: "RT-70192",
-    status: "completed" as RentalStatus,
-    itemName: "Áo khoác Akatsuki (Naruto) – Size L",
-    shopName: "Otaku Gear",
-    startDate: "01/01/2026",
-    endDate: "03/01/2026",
-    daysLeft: null,
-    totalPrice: 90000,
-    deposit: 200000,
-    image:
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=200&h=200&fit=crop",
-  },
-]
+interface RentalItemType {
+  id: string
+  status: RentalStatus
+  itemName: string
+  shopName: string
+  startDate: string
+  endDate: string
+  daysLeft: number | null
+  totalPrice: number
+  deposit: number
+  image: string
+}
 
 const statusConfig: Record<
   RentalStatus,
@@ -123,15 +81,7 @@ const statusConfig: Record<
   },
 }
 
-const counts = {
-  all: rentals.length,
-  active: rentals.filter((r) => r.status === "active").length,
-  pending: rentals.filter((r) => r.status === "pending").length,
-  returning: rentals.filter((r) => r.status === "returning").length,
-  completed: rentals.filter((r) => r.status === "completed").length,
-}
-
-function RentalCard({ rental }: { rental: (typeof rentals)[0] }) {
+function RentalCard({ rental }: { rental: RentalItemType }) {
   const cfg = statusConfig[rental.status]
   const [returnNote, setReturnNote] = useState("")
 
@@ -299,6 +249,40 @@ function RentalCard({ rental }: { rental: (typeof rentals)[0] }) {
 
 export function RentalManagement() {
   const [search, setSearch] = useState("")
+  const [rentals, setRentals] = useState<RentalItemType[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  React.useEffect(() => {
+    async function fetchRentals() {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const res = await fetch("/api/rental/bookings")
+        if (!res.ok) {
+          throw new Error(
+            "Không thể kết nối đến hệ thống để tải danh sách đơn thuê"
+          )
+        }
+        const data = await res.json()
+        setRentals(data.rentals || [])
+      } catch (err) {
+        setError((err as Error).message || "Đã xảy ra lỗi")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchRentals()
+  }, [])
+
+  const counts = {
+    all: rentals.length,
+    active: rentals.filter((r) => r.status === "active").length,
+    pending: rentals.filter((r) => r.status === "pending").length,
+    returning: rentals.filter((r) => r.status === "returning").length,
+    completed: rentals.filter((r) => r.status === "completed").length,
+  }
+
   const filtered = rentals.filter(
     (r) =>
       r.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -381,44 +365,56 @@ export function RentalManagement() {
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">
-        <Tabs defaultValue="all">
-          <TabsList className="mb-6 flex w-full overflow-x-auto sm:inline-flex sm:w-auto">
-            <TabsTrigger value="all">Tất cả ({counts.all})</TabsTrigger>
-            <TabsTrigger value="active">
-              Đang mượn ({counts.active})
-            </TabsTrigger>
-            <TabsTrigger value="pending">
-              Chờ giao ({counts.pending})
-            </TabsTrigger>
-            <TabsTrigger value="returning">
-              Đang trả ({counts.returning})
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              Xong ({counts.completed})
-            </TabsTrigger>
-          </TabsList>
+        {isLoading ? (
+          <div className="flex min-h-[300px] flex-col items-center justify-center gap-3">
+            <span className="animate-pulse text-sm text-muted-foreground">
+              Đang tải lịch sử đặt thuê...
+            </span>
+          </div>
+        ) : error ? (
+          <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-center">
+            <p className="text-sm font-semibold text-destructive">{error}</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="all">
+            <TabsList className="mb-6 flex w-full overflow-x-auto sm:inline-flex sm:w-auto">
+              <TabsTrigger value="all">Tất cả ({counts.all})</TabsTrigger>
+              <TabsTrigger value="active">
+                Đang mượn ({counts.active})
+              </TabsTrigger>
+              <TabsTrigger value="pending">
+                Chờ giao ({counts.pending})
+              </TabsTrigger>
+              <TabsTrigger value="returning">
+                Đang trả ({counts.returning})
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Xong ({counts.completed})
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
-            {filtered.length === 0 ? (
-              <p className="py-16 text-center text-muted-foreground">
-                Không tìm thấy đơn thuê nào.
-              </p>
-            ) : (
-              filtered.map((r) => <RentalCard key={r.id} rental={r} />)
-            )}
-          </TabsContent>
-          {(
-            ["active", "pending", "returning", "completed"] as RentalStatus[]
-          ).map((status) => (
-            <TabsContent key={status} value={status} className="space-y-4">
-              {filtered
-                .filter((r) => r.status === status)
-                .map((r) => (
-                  <RentalCard key={r.id} rental={r} />
-                ))}
+            <TabsContent value="all" className="space-y-4">
+              {filtered.length === 0 ? (
+                <p className="py-16 text-center text-muted-foreground">
+                  Không tìm thấy đơn thuê nào.
+                </p>
+              ) : (
+                filtered.map((r) => <RentalCard key={r.id} rental={r} />)
+              )}
             </TabsContent>
-          ))}
-        </Tabs>
+            {(
+              ["active", "pending", "returning", "completed"] as RentalStatus[]
+            ).map((status) => (
+              <TabsContent key={status} value={status} className="space-y-4">
+                {filtered
+                  .filter((r) => r.status === status)
+                  .map((r) => (
+                    <RentalCard key={r.id} rental={r} />
+                  ))}
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
 
         <Separator className="my-8" />
         <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-6 sm:flex-row">

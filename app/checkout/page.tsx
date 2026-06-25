@@ -89,6 +89,7 @@ export default function CheckoutPage() {
                 showBankModal={showBankModal}
                 setShowBankModal={setShowBankModal}
                 createdOrderId={createdOrderId}
+                finalTotal={finalTotal}
               />
             </div>
 

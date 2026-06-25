@@ -20,6 +20,7 @@ interface CheckoutFormProps {
   showBankModal: boolean
   setShowBankModal: (show: boolean) => void
   createdOrderId: string | null
+  finalTotal?: number
 }
 
 export function CheckoutForm({
@@ -30,6 +31,7 @@ export function CheckoutForm({
   showBankModal,
   setShowBankModal,
   createdOrderId,
+  finalTotal,
 }: CheckoutFormProps) {
   const router = useRouter()
   const {
@@ -323,6 +325,22 @@ export function CheckoutForm({
                     Vietcombank
                   </span>
                 </div>
+                {finalTotal !== undefined && (
+                  <div className="flex items-center justify-between border-t border-border/50 pt-2">
+                    <span className="text-xs text-muted-foreground">
+                      Số tiền:
+                    </span>
+                    <div className="flex items-center gap-1.5 font-bold text-destructive">
+                      <span>{`${finalTotal.toLocaleString("vi-VN")}₫`}</span>
+                      <button
+                        onClick={() => handleCopy(finalTotal.toString())}
+                        className="p-1 text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        <Copy className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between border-t border-border/50 pt-2">
                   <span className="text-xs text-muted-foreground">
                     Nội dung chuyển khoản:
