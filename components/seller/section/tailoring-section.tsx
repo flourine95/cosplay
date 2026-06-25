@@ -5,6 +5,16 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,6 +27,7 @@ import {
   Send,
 } from "lucide-react"
 import Image from "next/image"
+import type React from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -129,6 +140,20 @@ export function TailoringSectionNew() {
   const [data, setData] = useState<CustomOrdersResponse | null>(null)
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
   const [replyText, setReplyText] = useState("")
+  const [quoteOrder, setQuoteOrder] = useState<CustomOrder | null>(null)
+  const [progressOrder, setProgressOrder] = useState<CustomOrder | null>(null)
+  const [detailOrder, setDetailOrder] = useState<CustomOrder | null>(null)
+  const [quoteForm, setQuoteForm] = useState({
+    quotedPrice: "1200000",
+    depositAmount: "500000",
+    estimatedDays: "14",
+    description: "Báo giá từ seller",
+  })
+  const [progressForm, setProgressForm] = useState({
+    title: "Cập nhật tiến độ",
+    description: "Shop đã cập nhật tiến độ mới cho đơn đặt may.",
+    progressPercent: "35",
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -164,33 +189,27 @@ export function TailoringSectionNew() {
     [orders, selectedOrderId]
   )
 
-  async function sendQuote(order: CustomOrder) {
-    const quotedPrice = Number(window.prompt("Giá báo (VNĐ):", "1200000"))
-    if (!quotedPrice) return
-    const depositAmount = Number(window.prompt("Tiền cọc (VNĐ):", "500000"))
-    if (Number.isNaN(depositAmount)) return
-    const estimatedDays = Number(window.prompt("Số ngày dự kiến:", "14"))
-    if (!estimatedDays) return
-    const description = window.prompt("Ghi chú báo giá:", "Báo giá từ seller")
-
+  async function sendQuote() {
+    if (!quoteOrder) return
     setIsSubmitting(true)
     try {
       const response = await fetch(
-        `/api/seller/custom-orders/${order.id}/quotes`,
+        `/api/seller/custom-orders/${quoteOrder.id}/quotes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            quotedPrice,
-            depositAmount,
-            estimatedDays,
-            description: description ?? undefined,
+            quotedPrice: quoteForm.quotedPrice,
+            depositAmount: quoteForm.depositAmount,
+            estimatedDays: quoteForm.estimatedDays,
+            description: quoteForm.description || undefined,
           }),
         }
       )
       const json = await response.json()
       if (!response.ok) throw new Error(json.error ?? "Không thể gửi báo giá")
       toast.success("Đã gửi báo giá")
+      setQuoteOrder(null)
       await loadOrders()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
@@ -199,33 +218,19 @@ export function TailoringSectionNew() {
     }
   }
 
-  async function updateProgress(order: CustomOrder) {
-    const progressPercent = Number(
-      window.prompt(
-        "Tiến độ hiện tại (%):",
-        String(order.progressPercent || 35)
-      )
-    )
-    if (Number.isNaN(progressPercent)) return
-    const title = window.prompt("Tiêu đề tiến độ:", "Cập nhật tiến độ")
-    if (!title) return
-    const description = window.prompt(
-      "Mô tả tiến độ:",
-      "Shop đã cập nhật tiến độ mới cho đơn đặt may."
-    )
-    if (!description) return
-
+  async function updateProgress() {
+    if (!progressOrder) return
     setIsSubmitting(true)
     try {
       const response = await fetch(
-        `/api/seller/custom-orders/${order.id}/progress`,
+        `/api/seller/custom-orders/${progressOrder.id}/progress`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title,
-            description,
-            progressPercent,
+            title: progressForm.title,
+            description: progressForm.description,
+            progressPercent: progressForm.progressPercent,
             images: [],
             videos: [],
           }),
@@ -234,6 +239,7 @@ export function TailoringSectionNew() {
       const json = await response.json()
       if (!response.ok) throw new Error(json.error ?? "Không thể cập nhật")
       toast.success("Đã cập nhật tiến độ")
+      setProgressOrder(null)
       await loadOrders()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
@@ -362,11 +368,30 @@ export function TailoringSectionNew() {
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDetailOrder(selectedOrder)}
+                  >
+                    Chi tiết
+                  </Button>
                   {selectedOrder.status === CustomOrderStatus.SUBMITTED && (
                     <Button
                       size="sm"
                       disabled={isSubmitting}
-                      onClick={() => sendQuote(selectedOrder)}
+                      onClick={() => {
+                        setQuoteOrder(selectedOrder)
+                        setQuoteForm({
+                          quotedPrice: String(
+                            selectedOrder.estimatedPrice ?? 1200000
+                          ),
+                          depositAmount: String(
+                            selectedOrder.depositAmount ?? 500000
+                          ),
+                          estimatedDays: "14",
+                          description: "Báo giá từ seller",
+                        })
+                      }}
                     >
                       Gửi báo giá
                     </Button>
@@ -383,7 +408,17 @@ export function TailoringSectionNew() {
                       size="sm"
                       variant="outline"
                       disabled={isSubmitting}
-                      onClick={() => updateProgress(selectedOrder)}
+                      onClick={() => {
+                        setProgressOrder(selectedOrder)
+                        setProgressForm({
+                          title: "Cập nhật tiến độ",
+                          description:
+                            "Shop đã cập nhật tiến độ mới cho đơn đặt may.",
+                          progressPercent: String(
+                            Math.max(selectedOrder.progressPercent, 35)
+                          ),
+                        })
+                      }}
                     >
                       Cập nhật tiến độ
                     </Button>
@@ -618,6 +653,206 @@ export function TailoringSectionNew() {
           </div>
         </Card>
       )}
+
+      <Dialog
+        open={!!quoteOrder}
+        onOpenChange={(open) => !open && setQuoteOrder(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gửi báo giá</DialogTitle>
+            <DialogDescription>
+              Nhập giá, tiền cọc và thời gian dự kiến cho yêu cầu đặt may.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Giá báo">
+              <Input
+                type="number"
+                value={quoteForm.quotedPrice}
+                onChange={(event) =>
+                  setQuoteForm((current) => ({
+                    ...current,
+                    quotedPrice: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Tiền cọc">
+              <Input
+                type="number"
+                value={quoteForm.depositAmount}
+                onChange={(event) =>
+                  setQuoteForm((current) => ({
+                    ...current,
+                    depositAmount: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Số ngày dự kiến">
+              <Input
+                type="number"
+                value={quoteForm.estimatedDays}
+                onChange={(event) =>
+                  setQuoteForm((current) => ({
+                    ...current,
+                    estimatedDays: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Ghi chú">
+                <Textarea
+                  value={quoteForm.description}
+                  onChange={(event) =>
+                    setQuoteForm((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuoteOrder(null)}>
+              Hủy
+            </Button>
+            <Button disabled={isSubmitting} onClick={sendQuote}>
+              Gửi báo giá
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!detailOrder}
+        onOpenChange={(open) => !open && setDetailOrder(null)}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{detailOrder?.title}</DialogTitle>
+            <DialogDescription>
+              Tổng quan yêu cầu, báo giá và các mốc tiến độ đặt may.
+            </DialogDescription>
+          </DialogHeader>
+          {detailOrder && (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Summary label="Mã đơn" value={detailOrder.orderNumber} />
+                <Summary label="Khách hàng" value={detailOrder.customer.name} />
+                <Summary label="Trạng thái" value={detailOrder.statusLabel} />
+              </div>
+              <div className="rounded-lg border border-border/60 p-4">
+                <p className="text-sm font-semibold">Yêu cầu</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {detailOrder.description}
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Summary
+                  label="Báo giá gần nhất"
+                  value={
+                    detailOrder.quotes[0]
+                      ? formatCurrency(detailOrder.quotes[0].quotedPrice)
+                      : "Chưa có"
+                  }
+                />
+                <Summary
+                  label="Tiến độ"
+                  value={`${detailOrder.progressPercent}%`}
+                />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!progressOrder}
+        onOpenChange={(open) => !open && setProgressOrder(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Cập nhật tiến độ</DialogTitle>
+            <DialogDescription>
+              Ghi lại mốc tiến độ mới để khách theo dõi quá trình gia công.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Field label="Tiêu đề">
+              <Input
+                value={progressForm.title}
+                onChange={(event) =>
+                  setProgressForm((current) => ({
+                    ...current,
+                    title: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Tiến độ (%)">
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={progressForm.progressPercent}
+                onChange={(event) =>
+                  setProgressForm((current) => ({
+                    ...current,
+                    progressPercent: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Mô tả">
+              <Textarea
+                value={progressForm.description}
+                onChange={(event) =>
+                  setProgressForm((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProgressOrder(null)}>
+              Hủy
+            </Button>
+            <Button disabled={isSubmitting} onClick={updateProgress}>
+              Cập nhật
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function Summary({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/60 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-semibold">{value}</p>
+    </div>
+  )
+}
+
+function Field({
+  children,
+  label,
+}: {
+  children: React.ReactNode
+  label: string
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      {children}
     </div>
   )
 }

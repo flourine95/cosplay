@@ -4,6 +4,16 @@ import { CustomOrderStatus } from "@/app/generated/prisma/enums"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -14,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Send } from "lucide-react"
+import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -40,6 +51,13 @@ const formatDate = (value: string | null) =>
 
 export function QuotesSectionNew() {
   const [orders, setOrders] = useState<QuoteOrder[]>([])
+  const [quoteOrder, setQuoteOrder] = useState<QuoteOrder | null>(null)
+  const [quoteForm, setQuoteForm] = useState({
+    quotedPrice: "1200000",
+    depositAmount: "500000",
+    estimatedDays: "14",
+    description: "Báo giá từ seller",
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [submittingId, setSubmittingId] = useState<number | null>(null)
 
@@ -66,33 +84,27 @@ export function QuotesSectionNew() {
     return () => window.clearTimeout(timeoutId)
   }, [loadOrders])
 
-  async function sendQuote(order: QuoteOrder) {
-    const quotedPrice = Number(window.prompt("Giá báo (VNĐ):", "1200000"))
-    if (!quotedPrice) return
-    const depositAmount = Number(window.prompt("Tiền cọc (VNĐ):", "500000"))
-    if (Number.isNaN(depositAmount)) return
-    const estimatedDays = Number(window.prompt("Số ngày dự kiến:", "14"))
-    if (!estimatedDays) return
-    const description = window.prompt("Ghi chú báo giá:", "Báo giá từ seller")
-
-    setSubmittingId(order.id)
+  async function sendQuote() {
+    if (!quoteOrder) return
+    setSubmittingId(quoteOrder.id)
     try {
       const response = await fetch(
-        `/api/seller/custom-orders/${order.id}/quotes`,
+        `/api/seller/custom-orders/${quoteOrder.id}/quotes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            quotedPrice,
-            depositAmount,
-            estimatedDays,
-            description: description ?? undefined,
+            quotedPrice: quoteForm.quotedPrice,
+            depositAmount: quoteForm.depositAmount,
+            estimatedDays: quoteForm.estimatedDays,
+            description: quoteForm.description || undefined,
           }),
         }
       )
       const json = await response.json()
       if (!response.ok) throw new Error(json.error ?? "Không thể gửi báo giá")
       toast.success("Đã gửi báo giá")
+      setQuoteOrder(null)
       await loadOrders()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
@@ -157,7 +169,15 @@ export function QuotesSectionNew() {
                       <Button
                         size="sm"
                         disabled={submittingId === order.id}
-                        onClick={() => sendQuote(order)}
+                        onClick={() => {
+                          setQuoteOrder(order)
+                          setQuoteForm({
+                            quotedPrice: "1200000",
+                            depositAmount: "500000",
+                            estimatedDays: "14",
+                            description: "Báo giá từ seller",
+                          })
+                        }}
                       >
                         <Send className="mr-2 h-4 w-4" />
                         Báo giá
@@ -170,6 +190,95 @@ export function QuotesSectionNew() {
           </Table>
         </div>
       </CardContent>
+      <Dialog
+        open={!!quoteOrder}
+        onOpenChange={(open) => !open && setQuoteOrder(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gửi báo giá</DialogTitle>
+            <DialogDescription>
+              Nhập báo giá chi tiết cho yêu cầu đặt may đang chọn.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Giá báo">
+              <Input
+                type="number"
+                value={quoteForm.quotedPrice}
+                onChange={(event) =>
+                  setQuoteForm((current) => ({
+                    ...current,
+                    quotedPrice: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Tiền cọc">
+              <Input
+                type="number"
+                value={quoteForm.depositAmount}
+                onChange={(event) =>
+                  setQuoteForm((current) => ({
+                    ...current,
+                    depositAmount: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Số ngày dự kiến">
+              <Input
+                type="number"
+                value={quoteForm.estimatedDays}
+                onChange={(event) =>
+                  setQuoteForm((current) => ({
+                    ...current,
+                    estimatedDays: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Ghi chú</Label>
+              <Input
+                value={quoteForm.description}
+                onChange={(event) =>
+                  setQuoteForm((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuoteOrder(null)}>
+              Hủy
+            </Button>
+            <Button
+              disabled={submittingId === quoteOrder?.id}
+              onClick={sendQuote}
+            >
+              Gửi báo giá
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
+  )
+}
+
+function Field({
+  children,
+  label,
+}: {
+  children: React.ReactNode
+  label: string
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      {children}
+    </div>
   )
 }

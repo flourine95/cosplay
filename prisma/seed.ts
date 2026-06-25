@@ -338,6 +338,22 @@ const customOrderTemplates = [
   },
 ] as const
 
+const messageTemplates = [
+  {
+    content:
+      "Chào shop, em muốn hỏi đơn đặt may TAIL-001 đã có báo giá chưa ạ?",
+    from: "customer" as const,
+  },
+  {
+    content: "Shop đã nhận yêu cầu rồi nhé. Shop sẽ gửi báo giá trong hôm nay.",
+    from: "seller" as const,
+  },
+  {
+    content: "Dạ em cảm ơn shop.",
+    from: "customer" as const,
+  },
+] as const
+
 const seedSystemSettings = async () => {
   for (const setting of systemSettings) {
     await prisma.systemSetting.upsert({
@@ -750,6 +766,45 @@ const seedCustomOrders = async (
   }
 }
 
+const seedConversations = async (customerId: number, sellerId: number) => {
+  const conversation = await prisma.conversation.upsert({
+    where: { user1Id_user2Id: { user1Id: customerId, user2Id: sellerId } },
+    update: {},
+    create: {
+      user1Id: customerId,
+      user2Id: sellerId,
+      lastMessageAt: new Date(),
+    },
+  })
+
+  const existingMessages = await prisma.message.count({
+    where: { conversationId: conversation.id },
+  })
+  if (existingMessages > 0) return
+
+  for (const [index, message] of messageTemplates.entries()) {
+    const createdAt = new Date()
+    createdAt.setMinutes(
+      createdAt.getMinutes() - (messageTemplates.length - index) * 5
+    )
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        senderId: message.from === "seller" ? sellerId : customerId,
+        content: message.content,
+        attachments: [],
+        isRead: message.from === "seller",
+        createdAt,
+      },
+    })
+  }
+
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: { lastMessageAt: new Date() },
+  })
+}
+
 const main = async () => {
   await seedSystemSettings()
   await seedSystemFees()
@@ -768,6 +823,7 @@ const main = async () => {
   await seedOrders(customer.id, seller.id, productsMap)
   await seedRentalOrders(customer.id, productsMap)
   await seedCustomOrders(customer.id, seller.id, measurement.id)
+  await seedConversations(customer.id, seller.id)
 
   console.warn("Seed completed")
   console.warn(`Admin:    ${users.admin.email} / ${users.admin.password}`)
