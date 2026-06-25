@@ -34,8 +34,7 @@ export default function SellerProductsPage() {
           Quản lý sản phẩm
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Quản lý tồn kho, mô hình kinh doanh (bán, thuê, may đo) và trạng thái
-          hiển thị
+          Quản lý tồn kho, mô hình kinh doanh bán/thuê và trạng thái hiển thị
         </p>
       </div>
 

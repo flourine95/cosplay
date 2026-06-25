@@ -5,6 +5,7 @@ import { CalendarSectionNew } from "./section/calendar-section"
 import { DashboardSectionNew } from "./section/dashboard-section"
 import { OrdersSectionNew } from "./section/orders-section"
 import { ProductsSectionNew } from "./section/products-section"
+import { QuotesSectionNew } from "./section/quotes-section"
 import { RevenueSectionNew } from "./section/revenue-section"
 import { StatisticsSectionNew } from "./section/statistics-section"
 import { TailoringSectionNew } from "./section/tailoring-section"
@@ -49,6 +50,7 @@ export function SellerPage({ title, description, type }: SellerPageProps) {
       {type === "dashboard" && <DashboardSectionNew />}
       {type === "products" && <ProductsSectionNew />}
       {type === "orders" && <OrdersSectionNew />}
+      {type === "quotes" && <QuotesSectionNew />}
       {type === "tailoring" && <TailoringSectionNew />}
       {type === "calendar" && <CalendarSectionNew />}
       {type === "revenue" && <RevenueSectionNew />}
