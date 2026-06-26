@@ -1,19 +1,42 @@
-import { RevenueSectionNew } from "@/components/seller/section/revenue-section"
+import { RevenueDashboardClient } from "@/components/seller/revenue/revenue-client"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 export default function SellerRevenuePage() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="flex flex-col gap-6">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Trang chủ</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/seller">Seller Center</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Quản lý tài chính</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-3xl font-extrabold tracking-tight">
           Quản lý tài chính
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-muted-foreground">
           Theo dõi doanh thu, tiền cọc và các khoản thanh toán
         </p>
       </div>
 
-      <RevenueSectionNew />
+      <RevenueDashboardClient />
     </div>
   )
 }

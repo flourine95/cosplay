@@ -35,7 +35,7 @@ const formatTime = (value: string) =>
     timeStyle: "short",
   }).format(new Date(value))
 
-export function MessagesSectionNew() {
+export function SellerMessagesClient() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null

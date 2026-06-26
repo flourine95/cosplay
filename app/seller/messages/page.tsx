@@ -1,5 +1,5 @@
-import { MessagesSectionNew } from "@/components/seller/section/messages-section"
+import { SellerMessagesClient } from "@/components/seller/messages/messages-client"
 
 export default function SellerMessagesPage() {
-  return <MessagesSectionNew />
+  return <SellerMessagesClient />
 }

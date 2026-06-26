@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { UserRole } from "@/app/generated/prisma/enums"
-import { SellerShellNew } from "@/components/seller/seller-shell"
+import { SellerShell } from "@/components/seller/seller-shell"
 import { getSession } from "@/lib/auth"
 
 export default async function SellerLayout({
@@ -15,5 +15,5 @@ export default async function SellerLayout({
     redirect(`/login?redirect=${encodeURIComponent("/seller")}`)
   }
 
-  return <SellerShellNew>{children}</SellerShellNew>
+  return <SellerShell>{children}</SellerShell>
 }

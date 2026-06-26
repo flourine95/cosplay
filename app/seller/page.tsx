@@ -6,11 +6,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { DashboardSectionNew } from "@/components/seller/section/dashboard-section"
+import { SellerDashboardClient } from "@/components/seller/dashboard/dashboard-client"
 
 export default function SellerDashboardPage() {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -35,7 +35,7 @@ export default function SellerDashboardPage() {
       </div>
 
       {/* Dashboard Content */}
-      <DashboardSectionNew />
+      <SellerDashboardClient />
     </div>
   )
 }

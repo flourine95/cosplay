@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { OrderStatus } from "@/app/generated/prisma/enums"
+import { formatCurrency } from "@/lib/format"
 import {
   ArrowUpRight,
   BarChart3,
@@ -69,14 +70,7 @@ const statusClasses: Record<OrderStatus, string> = {
   [OrderStatus.REFUNDED]: "bg-slate-100 text-slate-700",
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value)
-
-export function DashboardSectionNew() {
+export function SellerDashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
