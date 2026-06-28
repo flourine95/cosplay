@@ -1,10 +1,10 @@
+export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from "next/server"
 import { Prisma } from "@/app/generated/prisma/client"
 import { getSession, sanitizeUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { getDefaultAddress, parseSavedAddresses } from "@/lib/profile"
 import { profileUpdateSchema } from "@/schemas/profile"
-
 export async function GET() {
   const sessionUser = await getSession()
   if (!sessionUser) {

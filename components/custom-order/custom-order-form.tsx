@@ -73,6 +73,10 @@ import {
 import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
 
+// -------------------------------------------------------------------------
+// Constants
+// -------------------------------------------------------------------------
+
 const steps = [
   { id: 1, label: "Bạn gửi yêu cầu", active: true },
   { id: 2, label: "Maker báo giá", active: false },
@@ -81,15 +85,21 @@ const steps = [
 ]
 
 const measurements = [
-  { label: "Chiều cao", unit: "cm", placeholder: "168" },
-  { label: "Cân nặng", unit: "kg", placeholder: "55" },
-  { label: "Vòng ngực", unit: "cm", placeholder: "86" },
-  { label: "Vòng eo", unit: "cm", placeholder: "68" },
-  { label: "Vòng mông", unit: "cm", placeholder: "90" },
-  { label: "Vai rộng", unit: "cm", placeholder: "38" },
-  { label: "Dài tay", unit: "cm", placeholder: "58" },
-  { label: "Dài quần", unit: "cm", placeholder: "100" },
+  { label: "Chiều cao", unit: "cm", placeholder: "168", field: "height" },
+  { label: "Cân nặng",  unit: "kg", placeholder: "55",  field: "weight" },
+  { label: "Vòng ngực", unit: "cm", placeholder: "86",  field: "chest" },
+  { label: "Vòng eo",   unit: "cm", placeholder: "68",  field: "waist" },
+  { label: "Vòng mông", unit: "cm", placeholder: "90",  field: "hips" },
+  { label: "Vai rộng",  unit: "cm", placeholder: "38",  field: "shoulder" },
+  { label: "Dài tay",   unit: "cm", placeholder: "58",  field: "armLength" },
+  { label: "Dài quần",  unit: "cm", placeholder: "100", field: "legLength" },
 ]
+
+const DRAFT_KEY = "custom-order-draft"
+
+// -------------------------------------------------------------------------
+// Types
+// -------------------------------------------------------------------------
 
 type FormErrors = {
   projectName?: string
@@ -103,9 +113,38 @@ type UploadedFile = {
   preview: string
 }
 
-const DRAFT_KEY = "custom-order-draft"
+type MeasurementProfile = {
+  id: number
+  name: string
+  updatedAt: string
+  isDefault: boolean
+  height?: number | null
+  weight?: number | null
+  chest?: number | null
+  waist?: number | null
+  hips?: number | null
+  shoulder?: number | null
+  armLength?: number | null
+  legLength?: number | null
+  neck?: number | null
+  notes?: string | null
+}
+
+type Seller = {
+  id: number
+  name: string
+  shopName: string | null
+  shopLogo: string | null
+  sellerRating: number
+  sellerTotalReviews: number
+}
+
+// -------------------------------------------------------------------------
+// Component
+// -------------------------------------------------------------------------
 
 export function CustomOrderForm() {
+  // --- Form state ---
   const [date, setDate] = useState<Date>()
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [projectName, setProjectName] = useState("")
@@ -116,47 +155,37 @@ export function CustomOrderForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
+
+  // --- Measurement state ---
+  const [measurementProfiles, setMeasurementProfiles] = useState<MeasurementProfile[]>([])
+  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string>("")
+  const [measurementValues, setMeasurementValues] = useState<Record<string, string>>({})
+  const [isMeasurementsLoading, setIsMeasurementsLoading] = useState(true)
+  const [measurementsError, setMeasurementsError] = useState<string | null>(null)
+
+  // --- Seller state ---
+  const [sellers, setSellers] = useState<Seller[]>([])
+  const [selectedSellerId, setSelectedSellerId] = useState<string>("")
+  const [isSellersLoading, setIsSellersLoading] = useState(true)
+  const [sellersError, setSellersError] = useState<string | null>(null)
+
   const router = useRouter()
 
-  const handleSubmit = async () => {
-    if (!validate()) return
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
 
-    setIsSubmitting(true)
-
-    // Mock API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Clear draft after successful submit
-    localStorage.removeItem(DRAFT_KEY)
-
-    // Generate random ID in event handler (not during render)
-    // This is safe because it's in an async event handler, not during render
-    // eslint-disable-next-line react-hooks/purity
-    const randomId = Math.floor(10000 + Math.random() * 90000)
-
-    // Redirect to success page with order info
-    const params = new URLSearchParams({
-      id: randomId.toString(),
-      name: encodeURIComponent(projectName),
-    })
-    router.push(`/custom-order/success?${params.toString()}`)
+  function applyProfile(profile: MeasurementProfile) {
+    const next: Record<string, string> = {}
+    for (const m of measurements) {
+      const val = profile[m.field as keyof MeasurementProfile]
+      next[m.field] = val != null ? String(val) : ""
+    }
+    setMeasurementValues(next)
   }
 
   const hasFormData = () => {
     return projectName || details || budget || uploadedFiles.length > 0
-  }
-
-  const handleCancel = () => {
-    if (hasFormData()) {
-      setShowCancelDialog(true)
-    } else {
-      router.push("/")
-    }
-  }
-
-  const confirmCancel = () => {
-    localStorage.removeItem(DRAFT_KEY)
-    router.push("/")
   }
 
   const validate = (): boolean => {
@@ -172,15 +201,112 @@ export function CustomOrderForm() {
     return Object.keys(newErrors).length === 0
   }
 
+  // -------------------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------------------
+
+  const handleSubmit = async () => {
+    if (!validate()) return
+
+    setIsSubmitting(true)
+    try {
+      const res = await fetch("/api/custom-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterName: projectName,
+          description: details,
+          deadline: date?.toISOString(),
+          estimatedPrice: budget,
+          measurementId:
+            selectedMeasurementId !== "__manual__"
+              ? selectedMeasurementId
+              : undefined,
+          sellerId: selectedSellerId || undefined,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Lỗi không xác định")
+
+      localStorage.removeItem(DRAFT_KEY)
+      router.push(
+        `/custom-order/success?id=${data.orderId}&name=${encodeURIComponent(projectName)}`
+      )
+    } catch (err) {
+      console.error("Submit error:", err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleCancel = () => {
+    if (hasFormData()) {
+      setShowCancelDialog(true)
+    } else {
+      router.push("/")
+    }
+  }
+
+  const confirmCancel = () => {
+    localStorage.removeItem(DRAFT_KEY)
+    router.push("/")
+  }
+
+  // -------------------------------------------------------------------------
+  // Effects
+  // -------------------------------------------------------------------------
+
+  // Fetch measurement profiles from DB
+  useEffect(() => {
+    async function fetchMeasurements() {
+      try {
+        setIsMeasurementsLoading(true)
+        const res = await fetch("/api/measurements")
+        if (!res.ok) throw new Error()
+        const data: MeasurementProfile[] = await res.json()
+        setMeasurementProfiles(data)
+
+        // Auto-select isDefault profile, otherwise first one
+        const defaultProfile = data.find((p) => p.isDefault) ?? data[0]
+        if (defaultProfile) {
+          setSelectedMeasurementId(String(defaultProfile.id))
+          applyProfile(defaultProfile)
+        }
+      } catch {
+        setMeasurementsError("Không thể tải số đo. Vui lòng nhập thủ công.")
+      } finally {
+        setIsMeasurementsLoading(false)
+      }
+    }
+    fetchMeasurements()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Fetch sellers from DB
+  useEffect(() => {
+    async function fetchSellers() {
+      try {
+        setIsSellersLoading(true)
+        const res = await fetch("/api/sellers")
+        if (!res.ok) throw new Error()
+        const data: Seller[] = await res.json()
+        setSellers(data)
+      } catch {
+        setSellersError("Không thể tải danh sách Maker.")
+      } finally {
+        setIsSellersLoading(false)
+      }
+    }
+    fetchSellers()
+  }, [])
+
   // Load draft from localStorage on mount
   useEffect(() => {
     const draft = localStorage.getItem(DRAFT_KEY)
     if (!draft) return
-
     try {
       const parsed = JSON.parse(draft)
-      // Restore draft data on mount - this is intentional initialization
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (parsed.projectName) setProjectName(parsed.projectName)
       if (parsed.category) setCategory(parsed.category)
       if (parsed.budget) setBudget(parsed.budget)
@@ -210,7 +336,7 @@ export function CustomOrderForm() {
     return () => clearTimeout(timer)
   }, [projectName, category, budget, details, date])
 
-  // Keyboard shortcuts
+  // Keyboard shortcut Ctrl+Enter to submit
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -220,9 +346,12 @@ export function CustomOrderForm() {
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-    // handleSubmit is stable, no need to add to deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -261,7 +390,7 @@ export function CustomOrderForm() {
             )}
           </div>
 
-          {/* Process Timeline - Not wizard steps! */}
+          {/* Process Timeline */}
           <div className="mt-5">
             <p className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               Quy trình đặt may
@@ -288,9 +417,7 @@ export function CustomOrderForm() {
                       {step.id}
                     </span>
                     <span className="hidden sm:inline">{step.label}</span>
-                    <span className="sm:hidden">
-                      {step.label.split(" ")[0]}
-                    </span>
+                    <span className="sm:hidden">{step.label.split(" ")[0]}</span>
                   </div>
                   {i < steps.length - 1 && (
                     <ChevronRight className="hidden h-3 w-3 shrink-0 text-border md:block" />
@@ -310,7 +437,8 @@ export function CustomOrderForm() {
         <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              {/* Ảnh tham khảo */}
+
+              {/* ── Ảnh tham khảo ── */}
               <Card className="border-border/60">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -405,7 +533,7 @@ export function CustomOrderForm() {
                 </CardContent>
               </Card>
 
-              {/* Thông tin nhân vật */}
+              {/* ── Thông tin nhân vật ── */}
               <Card className="border-border/60">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -542,7 +670,9 @@ export function CustomOrderForm() {
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date ? format(date, "dd/MM/yyyy") : "Chọn ngày..."}
+                            {date
+                              ? format(date, "dd/MM/yyyy")
+                              : "Chọn ngày..."}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
@@ -576,7 +706,127 @@ export function CustomOrderForm() {
                 </CardContent>
               </Card>
 
-              {/* Số đo */}
+              {/* ── Chọn Maker ── */}
+              <Card className="border-border/60">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Scissors className="h-5 w-5 text-primary" />
+                    Chọn Maker
+                  </CardTitle>
+                  <CardDescription>
+                    Chỉ định Maker bạn muốn đặt may, hoặc để trống để nhận báo
+                    giá từ nhiều Maker.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {isSellersLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Đang tải danh sách Maker...
+                    </div>
+                  ) : sellersError ? (
+                    <p className="flex items-center gap-1.5 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      {sellersError}
+                    </p>
+                  ) : (
+                    <Select
+                      value={selectedSellerId}
+                      onValueChange={(val) => {
+                        setSelectedSellerId(val === "__none__" ? "" : val)
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Để trống — nhận báo giá từ nhiều Maker..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">
+                          Không chỉ định — nhận báo giá từ nhiều Maker
+                        </SelectItem>
+                        {sellers.map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            <div className="flex items-center gap-2">
+                              {s.shopLogo ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={s.shopLogo}
+                                  alt={s.shopName ?? s.name}
+                                  className="h-5 w-5 rounded-full object-cover"
+                                />
+                              ) : (
+                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                                  {(s.shopName ?? s.name).charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                              <span>
+                                {s.shopName ?? s.name}
+                                {s.shopName && (
+                                  <span className="ml-1 text-xs text-muted-foreground">
+                                    · {s.name}
+                                  </span>
+                                )}
+                              </span>
+                              {s.sellerRating > 0 && (
+                                <span className="ml-auto text-xs text-muted-foreground">
+                                  ★ {s.sellerRating.toFixed(1)}{" "}
+                                  <span className="text-muted-foreground/60">
+                                    ({s.sellerTotalReviews})
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {/* Preview seller đã chọn */}
+                  {selectedSellerId && (() => {
+                    const s = sellers.find((s) => String(s.id) === selectedSellerId)
+                    if (!s) return null
+                    return (
+                      <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+                        {s.shopLogo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={s.shopLogo}
+                            alt={s.shopName ?? s.name}
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
+                            {(s.shopName ?? s.name).charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-foreground truncate">
+                            {s.shopName ?? s.name}
+                          </p>
+                          {s.shopName && (
+                            <p className="text-xs text-muted-foreground">{s.name}</p>
+                          )}
+                          {s.sellerRating > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              ★ {s.sellerRating.toFixed(1)} · {s.sellerTotalReviews} đánh giá
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-muted-foreground"
+                          onClick={() => setSelectedSellerId("")}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )
+                  })()}
+                </CardContent>
+              </Card>
+
+              {/* ── Số đo cơ thể ── */}
               <Card className="border-border/60">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
@@ -616,31 +866,72 @@ export function CustomOrderForm() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Dropdown chọn profile */}
                   <div className="flex items-center gap-3">
-                    <Select>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Chọn profile số đo đã lưu..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="my_size">
-                          Số đo của tôi (Cập nhật 1 tháng trước)
-                        </SelectItem>
-                        <SelectItem value="friend_size">
-                          Số đo của Nam (Bạn)
-                        </SelectItem>
-                        <SelectItem value="custom">Nhập số đo mới</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {isMeasurementsLoading ? (
+                      <div className="flex flex-1 items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Đang tải số đo...
+                      </div>
+                    ) : measurementsError ? (
+                      <p className="flex flex-1 items-center gap-1.5 text-xs text-destructive">
+                        <AlertCircle className="h-3 w-3" />
+                        {measurementsError}
+                      </p>
+                    ) : (
+                      <Select
+                        value={selectedMeasurementId}
+                        onValueChange={(val) => {
+                          if (val === "__manual__") {
+                            setSelectedMeasurementId("__manual__")
+                            setMeasurementValues({})
+                            return
+                          }
+                          setSelectedMeasurementId(val)
+                          const profile = measurementProfiles.find(
+                            (p) => String(p.id) === val
+                          )
+                          if (profile) applyProfile(profile)
+                        }}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Chọn profile số đo đã lưu..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {measurementProfiles.length === 0 ? (
+                            <SelectItem value="__empty__" disabled>
+                              Chưa có profile nào
+                            </SelectItem>
+                          ) : (
+                            measurementProfiles.map((p) => (
+                              <SelectItem key={p.id} value={String(p.id)}>
+                                {p.name}
+                                {p.isDefault && (
+                                  <span className="ml-1.5 text-xs text-muted-foreground">
+                                    · Mặc định
+                                  </span>
+                                )}
+                              </SelectItem>
+                            ))
+                          )}
+                          <SelectItem value="__manual__">
+                            Nhập số đo mới (thủ công)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                     <Link
-                      href="#"
+                      href="/profile/measurements"
                       className="shrink-0 text-sm text-primary hover:underline"
                     >
                       Quản lý
                     </Link>
                   </div>
+
+                  {/* Grid nhập số đo */}
                   <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-4 md:grid-cols-4">
                     {measurements.map((m) => (
-                      <div key={m.label} className="space-y-1">
+                      <div key={m.field} className="space-y-1">
                         <Label className="text-xs font-medium text-muted-foreground">
                           {m.label}
                         </Label>
@@ -649,6 +940,13 @@ export function CustomOrderForm() {
                             type="number"
                             placeholder={m.placeholder}
                             className="h-8 text-sm"
+                            value={measurementValues[m.field] ?? ""}
+                            onChange={(e) =>
+                              setMeasurementValues((prev) => ({
+                                ...prev,
+                                [m.field]: e.target.value,
+                              }))
+                            }
                           />
                           <span className="shrink-0 text-xs text-muted-foreground">
                             {m.unit}
@@ -657,11 +955,26 @@ export function CustomOrderForm() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Notes từ profile nếu có */}
+                  {selectedMeasurementId !== "__manual__" &&
+                    measurementProfiles.find(
+                      (p) => String(p.id) === selectedMeasurementId
+                    )?.notes && (
+                      <p className="flex items-start gap-1.5 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                        <Info className="mt-0.5 h-3 w-3 shrink-0" />
+                        {
+                          measurementProfiles.find(
+                            (p) => String(p.id) === selectedMeasurementId
+                          )?.notes
+                        }
+                      </p>
+                    )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Sidebar */}
+            {/* ── Sidebar ── */}
             <div>
               <Card className="sticky top-20 border-border/60">
                 <CardHeader className="pb-3">
@@ -671,8 +984,18 @@ export function CustomOrderForm() {
                   {[
                     { label: "Nhân vật", value: projectName || "Chưa nhập" },
                     {
+                      label: "Maker",
+                      value: selectedSellerId
+                        ? (sellers.find((s) => String(s.id) === selectedSellerId)?.shopName
+                          ?? sellers.find((s) => String(s.id) === selectedSellerId)?.name
+                          ?? "Đã chọn")
+                        : "Nhận từ nhiều Maker",
+                    },
+                    {
                       label: "Deadline",
-                      value: date ? format(date, "dd/MM/yyyy") : "Chưa chọn",
+                      value: date
+                        ? format(date, "dd/MM/yyyy")
+                        : "Chưa chọn",
                     },
                     {
                       label: "Ngân sách",
@@ -703,7 +1026,6 @@ export function CustomOrderForm() {
 
                   <Separator />
 
-                  {/* Process steps */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-foreground">
                       Quy trình sau khi gửi:
@@ -728,7 +1050,6 @@ export function CustomOrderForm() {
                     </ol>
                   </div>
 
-                  {/* Info note — dùng design system thay vì blue hardcode */}
                   <div className="flex items-start gap-2 rounded-lg bg-muted/60 p-3">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">

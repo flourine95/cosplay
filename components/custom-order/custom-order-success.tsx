@@ -66,8 +66,7 @@ export function CustomOrderSuccess() {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          clearInterval(timer)
-          router.push(`/custom-order/${orderId}`)
+          clearInterval(timer) 
           return 0
         }
         return prev - 1

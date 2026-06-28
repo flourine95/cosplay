@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   CheckCircle2,
   Clock,
@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Download,
   AlertCircle,
+  Loader2,
 } from "lucide-react"
 import {
   Card,
@@ -48,45 +49,59 @@ import {
 import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
 import { useParams } from "next/navigation"
+import { format } from "date-fns"
 
-const timelineSteps = [
-  {
-    id: 1,
-    label: "Đã xác nhận & Nhận cọc",
-    date: "15/04/2026 – 10:00",
-    desc: "Đã nhận cọc 1,000,000 đ.",
-    done: true,
-  },
-  {
-    id: 2,
-    label: "Chuẩn bị vật liệu",
-    date: "16/04/2026",
-    desc: "Maker đã chốt rập và mua đủ vải.",
-    done: true,
-  },
-  {
-    id: 3,
-    label: "Đang gia công",
-    date: "Hiện tại",
-    desc: "Đang lên form thử áo, may chi tiết phụ kiện.",
-    done: false,
-    current: true,
-  },
-  {
-    id: 4,
-    label: "Hoàn thiện & Nghiệm thu",
-    date: "Dự kiến 20/05/2026",
-    desc: "",
-    done: false,
-  },
-  {
-    id: 5,
-    label: "Thanh toán & Giao hàng",
-    date: "Sau nghiệm thu",
-    desc: "",
-    done: false,
-  },
-]
+// -------------------------------------------------------------------------
+// Types
+// -------------------------------------------------------------------------
+
+type TimelineStep = {
+  status: string
+  label: string
+  desc: string
+  date: string | null
+  done: boolean
+  current: boolean
+}
+
+type Finance = {
+  estimatedPrice: number
+  depositAmount: number
+  finalAmount: number
+  totalPaid: number
+  remaining: number
+  shippingFee: number
+}
+
+type Seller = {
+  id: number
+  name: string
+  shopName: string | null
+  shopLogo: string | null
+  sellerRating: number
+  sellerTotalReviews: number
+  phone: string
+}
+
+type OrderDetail = {
+  id: number
+  orderNumber: string
+  title: string
+  characterName: string | null
+  animeName: string | null
+  status: string
+  statusLabel: string
+  statusDesc: string
+  progressPercent: number
+  deadline: string | null
+  finance: Finance
+  seller: Seller | null
+  timeline: TimelineStep[]
+}
+
+// -------------------------------------------------------------------------
+// Hardcode messages (chat chưa kết nối DB)
+// -------------------------------------------------------------------------
 
 const messages = [
   {
@@ -121,18 +136,103 @@ const messages = [
   },
 ]
 
+// -------------------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------------------
+
+function formatVND(amount: number) {
+  return amount.toLocaleString("vi-VN") + " đ"
+}
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return "—"
+  try {
+    return format(new Date(dateStr), "dd/MM/yyyy")
+  } catch {
+    return "—"
+  }
+}
+
+// -------------------------------------------------------------------------
+// Component
+// -------------------------------------------------------------------------
+
 export function ProgressTracking() {
   const params = useParams()
-  const orderId = params.id ? `#CM-${params.id}` : "#CM-40912"
+  const rawId = params.id as string
+
+  const [order, setOrder] = useState<OrderDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [revisionText, setRevisionText] = useState("")
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
-  const progressPercent = 60
+
+  useEffect(() => {
+    if (!rawId) return
+    async function fetchOrder() {
+      try {
+        setIsLoading(true)
+        const res = await fetch(`/api/custom-orders/${rawId}`)
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error ?? "Không tải được đơn hàng")
+        }
+        const data: OrderDetail = await res.json()
+        setOrder(data)
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Lỗi không xác định")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchOrder()
+  }, [rawId])
+
+  // ── Loading ──
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <Navbar />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-sm">Đang tải đơn hàng...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  // ── Error ──
+  if (error || !order) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <Navbar />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <AlertCircle className="h-10 w-10 text-destructive" />
+            <p className="font-semibold">{error ?? "Không tìm thấy đơn hàng"}</p>
+            <Button variant="outline" onClick={() => window.history.back()}>
+              Quay lại
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  const orderId = `#${order.orderNumber}`
+  const sellerName = order.seller?.shopName ?? order.seller?.name ?? "Chưa có Maker"
+  const isReady = order.status === "READY" || order.status === "COMPLETED"
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
+      {/* ── Header ── */}
       <div className="border-b border-border/60 bg-muted/30">
         <div className="mx-auto max-w-6xl px-4 py-5 md:px-6">
           <Breadcrumb className="mb-3">
@@ -157,38 +257,47 @@ export function ProgressTracking() {
                 Theo dõi Tiến độ Gia công
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Genshin Impact – Raiden Shogun Full Set • Maker:{" "}
-                <span className="font-medium text-primary">
-                  Klee Crafter Shop
-                </span>
+                {order.title}
+                {order.seller && (
+                  <>
+                    {" "}• Maker:{" "}
+                    <span className="font-medium text-primary">{sellerName}</span>
+                  </>
+                )}
               </p>
             </div>
             <Badge variant="secondary" className="w-fit gap-1.5">
               <Clock className="h-3 w-3" />
-              Đang gia công ({progressPercent}%)
+              {order.statusLabel} ({order.progressPercent}%)
             </Badge>
           </div>
+
+          {/* Progress bar */}
           <div className="mt-4">
             <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
               <span>Tiến độ tổng thể</span>
               <span className="font-semibold text-primary">
-                {progressPercent}%
+                {order.progressPercent}%
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${progressPercent}%` }}
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${order.progressPercent}%` }}
               />
             </div>
           </div>
         </div>
       </div>
 
+      {/* ── Body ── */}
       <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Cột trái */}
+
+          {/* ── Cột trái ── */}
           <div className="space-y-5">
+
+            {/* Thông tin đơn hàng */}
             <Card className="border-border/60 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -198,23 +307,47 @@ export function ProgressTracking() {
               </CardHeader>
               <CardContent className="space-y-2.5 text-sm">
                 {[
-                  { label: "Mã đơn", value: orderId, cls: "" },
+                  {
+                    label: "Mã đơn",
+                    value: orderId,
+                    cls: "",
+                  },
+                  {
+                    label: "Trạng thái",
+                    value: order.statusLabel,
+                    cls: "font-medium text-primary",
+                  },
                   {
                     label: "Ngân sách chốt",
-                    value: "2,500,000 đ",
+                    value: formatVND(order.finance.finalAmount || order.finance.estimatedPrice),
                     cls: "font-bold text-primary",
                   },
-                  { label: "Đã cọc", value: "1,000,000 đ", cls: "" },
+                  {
+                    label: "Đã cọc",
+                    value: formatVND(order.finance.depositAmount),
+                    cls: "",
+                  },
+                  {
+                    label: "Đã thanh toán",
+                    value: formatVND(order.finance.totalPaid),
+                    cls: "",
+                  },
                   {
                     label: "Còn lại",
-                    value: "1,500,000 đ",
-                    cls: "font-semibold text-orange-600",
+                    value: formatVND(order.finance.remaining),
+                    cls: order.finance.remaining > 0
+                      ? "font-semibold text-orange-600"
+                      : "font-semibold text-green-600",
                   },
-                  { label: "Deadline", value: "20/05/2026", cls: "" },
+                  {
+                    label: "Deadline",
+                    value: formatDate(order.deadline),
+                    cls: "",
+                  },
                 ].map((item) => (
-                  <div key={item.label} className="flex justify-between">
+                  <div key={item.label} className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{item.label}</span>
-                    <span className={item.cls || "font-medium"}>
+                    <span className={item.cls || "font-medium text-right"}>
                       {item.value}
                     </span>
                   </div>
@@ -222,6 +355,7 @@ export function ProgressTracking() {
               </CardContent>
             </Card>
 
+            {/* Cột mốc tiến độ */}
             <Card className="border-border/60 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -230,8 +364,8 @@ export function ProgressTracking() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {timelineSteps.map((step, i) => (
-                  <div key={step.id} className="flex gap-3 pb-4 last:pb-0">
+                {order.timeline.map((step, i) => (
+                  <div key={step.status} className="flex gap-3 pb-4 last:pb-0">
                     <div className="flex flex-col items-center">
                       <div
                         className={`z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
@@ -250,7 +384,7 @@ export function ProgressTracking() {
                           <Package className="h-3.5 w-3.5" />
                         )}
                       </div>
-                      {i < timelineSteps.length - 1 && (
+                      {i < order.timeline.length - 1 && (
                         <div
                           className={`mt-1 w-px ${step.done ? "bg-green-400" : "bg-border"}`}
                           style={{ height: 28 }}
@@ -259,13 +393,21 @@ export function ProgressTracking() {
                     </div>
                     <div className="pt-0.5">
                       <p
-                        className={`text-sm font-semibold ${step.current ? "text-primary" : step.done ? "text-foreground" : "text-muted-foreground"}`}
+                        className={`text-sm font-semibold ${
+                          step.current
+                            ? "text-primary"
+                            : step.done
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                        }`}
                       >
                         {step.label}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {step.date}
-                      </p>
+                      {step.date && (
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(step.date)}
+                        </p>
+                      )}
                       {step.desc && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {step.desc}
@@ -277,7 +419,14 @@ export function ProgressTracking() {
               </CardContent>
             </Card>
 
-            <Card className="border-green-200 bg-green-50/60 shadow-sm dark:border-green-900 dark:bg-green-950/20">
+            {/* Nghiệm thu */}
+            <Card
+              className={
+                isReady
+                  ? "border-green-300 bg-green-50/60 shadow-sm dark:border-green-900 dark:bg-green-950/20"
+                  : "border-border/60 bg-muted/20 shadow-sm"
+              }
+            >
               <CardContent className="space-y-3 pt-5 pb-4">
                 <p className="text-sm font-semibold text-green-800 dark:text-green-300">
                   ✅ Nghiệm thu sản phẩm
@@ -286,19 +435,25 @@ export function ProgressTracking() {
                   Khi Maker gửi ảnh hoàn thiện, bấm để xác nhận đạt yêu cầu và
                   chuyển sang thanh toán phần còn lại.
                 </p>
-                <Button disabled className="w-full" variant="outline">
+                <Button
+                  disabled={!isReady}
+                  className="w-full"
+                  variant={isReady ? "default" : "outline"}
+                >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Nghiệm thu sản phẩm
                 </Button>
-                <p className="flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
-                  <AlertCircle className="h-3 w-3" />
-                  Chờ Maker gửi ảnh hoàn thiện
-                </p>
+                {!isReady && (
+                  <p className="flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
+                    <AlertCircle className="h-3 w-3" />
+                    Chờ Maker gửi ảnh hoàn thiện
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Cột phải: Chat WIP */}
+          {/* ── Cột phải: Chat WIP ── */}
           <div className="flex flex-col lg:col-span-2">
             <Card className="flex h-[580px] flex-1 flex-col overflow-hidden border-border/60 shadow-sm">
               <CardHeader className="shrink-0 border-b bg-muted/20 px-4 py-3">
@@ -443,7 +598,6 @@ export function ProgressTracking() {
                     e.preventDefault()
                     if (message.trim()) {
                       setIsSending(true)
-                      // Mock API call
                       await new Promise((resolve) => setTimeout(resolve, 500))
                       setMessage("")
                       setIsSending(false)
