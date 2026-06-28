@@ -28,6 +28,7 @@ export type Product = {
   sizes: string[]
   description: string
   details: { label: string; value: string }[]
+  createdAt?: string
 }
 
 export const products: Product[] = [

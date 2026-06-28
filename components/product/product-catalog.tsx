@@ -48,6 +48,7 @@ function FilterSidebar({
   onServiceFilter,
   priceMin,
   priceMax,
+  priceMaxLimit,
   onPriceMinChange,
   onPriceMax,
   onReset,
@@ -60,6 +61,7 @@ function FilterSidebar({
   onServiceFilter: (s: ServiceFilter) => void
   priceMin: number
   priceMax: number
+  priceMaxLimit: number
   onPriceMinChange: (v: number) => void
   onPriceMax: (v: number) => void
   onReset: () => void
@@ -68,8 +70,8 @@ function FilterSidebar({
   const hasFilters =
     selectedCategories.length > 0 ||
     serviceFilter !== "all" ||
-    priceMax < 2000000 ||
-    priceMin > 200000
+    priceMax < priceMaxLimit ||
+    priceMin > 0
 
   return (
     <div className="flex flex-col gap-7">
@@ -205,8 +207,8 @@ function FilterSidebar({
           </span>
         </div>
         <Slider
-          min={200000}
-          max={2000000}
+          min={0}
+          max={priceMaxLimit}
           step={50000}
           value={[priceMin, priceMax]}
           onValueChange={([min, max]) => {
@@ -216,8 +218,8 @@ function FilterSidebar({
           className="w-full"
         />
         <div className="flex justify-between text-[11px] text-muted-foreground">
-          <span>200K</span>
-          <span>2.000K</span>
+          <span>0K</span>
+          <span>{Math.round(priceMaxLimit / 1000)}K</span>
         </div>
       </div>
 
@@ -410,9 +412,13 @@ export function ProductCatalog({
   const [query, setQuery] = useState("")
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [priceMin, setPriceMin] = useState(200000)
-  const [priceMax, setPriceMax] = useState(2000000)
-  const [sort, setSort] = useState<SortOption>("popular")
+  const priceMaxLimit = useMemo(
+    () => Math.max(2000000, ...products.map((product) => product.price)),
+    [products]
+  )
+  const [priceMin, setPriceMin] = useState(0)
+  const [priceMax, setPriceMax] = useState(priceMaxLimit)
+  const [sort, setSort] = useState<SortOption>("newest")
   const [sortOpen, setSortOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
@@ -432,8 +438,8 @@ export function ProductCatalog({
   const resetFilters = () => {
     setSelectedCategories([])
     setServiceFilter("all")
-    setPriceMin(200000)
-    setPriceMax(2000000)
+    setPriceMin(0)
+    setPriceMax(priceMaxLimit)
     setQuery("")
     setPage(1)
   }
@@ -466,6 +472,13 @@ export function ProductCatalog({
       case "rating":
         result.sort((a, b) => b.rating - a.rating)
         break
+      case "newest":
+        result.sort(
+          (a, b) =>
+            Date.parse(b.createdAt ?? "1970-01-01") -
+            Date.parse(a.createdAt ?? "1970-01-01")
+        )
+        break
       default:
         result.sort((a, b) => b.reviewCount - a.reviewCount)
     }
@@ -490,7 +503,7 @@ export function ProductCatalog({
   const activeFilterCount =
     selectedCategories.length +
     (serviceFilter !== "all" ? 1 : 0) +
-    (priceMax < 2000000 || priceMin > 200000 ? 1 : 0) +
+    (priceMax < priceMaxLimit || priceMin > 0 ? 1 : 0) +
     (query.trim() ? 1 : 0)
 
   const sidebarProps = {
@@ -504,6 +517,7 @@ export function ProductCatalog({
     },
     priceMin,
     priceMax,
+    priceMaxLimit,
     onPriceMinChange: (v: number) => {
       setPriceMin(v)
       setPage(1)

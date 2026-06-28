@@ -4,6 +4,9 @@ import { ProductCatalog } from "@/components/product/product-catalog"
 import { prisma } from "@/lib/prisma"
 import { mapDbProductToFrontendProduct } from "@/lib/products-server"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function ProductsPage() {
   const dbProducts = await prisma.product.findMany({
     where: {

@@ -134,5 +134,6 @@ export function mapDbProductToFrontendProduct(
       { label: "Giao hàng", value: "2-5 ngày toàn quốc" },
       { label: "Đổi trả", value: "7 ngày nếu lỗi sản xuất" },
     ],
+    createdAt: product.createdAt.toISOString(),
   }
 }

@@ -124,6 +124,11 @@ export function ProductListClient() {
   const sortedProducts = useMemo(() => {
     const result = [...filteredProducts]
     result.sort((a, b) => {
+      const statusPriority = (status: ProductStatus) =>
+        status === ProductStatus.ACTIVE ? 0 : 1
+      const statusDiff = statusPriority(a.status) - statusPriority(b.status)
+      if (statusDiff !== 0) return statusDiff
+
       const direction = sortDirection === "asc" ? 1 : -1
       if (sortField === "stock") {
         return (a.totalStock - b.totalStock) * direction

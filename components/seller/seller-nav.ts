@@ -9,10 +9,12 @@ import {
   Package,
   Scissors,
   ShoppingBag,
+  UserCircle,
 } from "lucide-react"
 
 export const sellerNavItems = [
   { title: "Tổng quan", href: "/seller", icon: Gauge },
+  { title: "Hồ sơ seller", href: "/seller/profile", icon: UserCircle },
   { title: "Quản lý sản phẩm", href: "/seller/products", icon: Package },
   { title: "Đơn mua & Thuê", href: "/seller/orders", icon: ShoppingBag },
   { title: "Tin nhắn", href: "/seller/messages", icon: MessageSquare },
