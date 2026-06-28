@@ -229,6 +229,19 @@ export function CustomOrderForm() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Lỗi không xác định")
 
+      // Gửi email xác nhận — fire and forget, không chặn redirect
+      fetch("/api/custom-orders/confirm-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: data.orderId,
+          orderNumber: data.orderNumber,
+          characterName: projectName,
+        }),
+      })
+        .then((r) => console.log("confirm-email status:", r.status))
+        .catch((e) => console.error("confirm-email error:", e))
+
       localStorage.removeItem(DRAFT_KEY)
       router.push(
         `/custom-order/success?id=${data.orderId}&name=${encodeURIComponent(projectName)}`
