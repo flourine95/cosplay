@@ -54,10 +54,7 @@ export function toProductFormValues(
     comparePrice: product.comparePrice ?? undefined,
     sku: product.sku ?? "",
     type: product.type,
-    status:
-      product.status === ProductStatus.ACTIVE
-        ? ProductStatus.ACTIVE
-        : ProductStatus.DRAFT,
+    status: ProductStatus.DRAFT,
     tags: product.tags.filter((tag) => !tag.startsWith("condition:")),
     imageUrls: product.images,
     variants:

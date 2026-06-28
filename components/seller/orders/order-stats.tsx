@@ -22,7 +22,7 @@ export function OrderStats({ orders, stats }: OrderStatsProps) {
     .filter((order) => order.status !== OrderStatus.CANCELLED)
     .reduce((sum, order) => sum + order.total, 0)
   const needsAttention = orders.filter((order) =>
-    actionableStatuses.includes(order.status)
+    actionableStatuses.includes(order.status as OrderStatus)
   ).length
   const shipping = stats.byStatus[OrderStatus.SHIPPING] ?? 0
 

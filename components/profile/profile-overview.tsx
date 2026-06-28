@@ -1,23 +1,23 @@
 "use client"
 
+import type React from "react"
 import Link from "next/link"
 import {
-  User,
-  Edit3,
-  Ruler,
-  Package,
-  MapPin,
-  Mail,
-  Phone,
   Calendar,
   ChevronRight,
+  Edit3,
+  Mail,
+  Package,
+  Phone,
+  Ruler,
+  Scissors,
   Settings,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -26,23 +26,22 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
+import { Navbar } from "@/components/home/navbar"
 
-// Mock user data
-const user = {
-  name: "Nguyễn Văn A",
-  email: "nguyenvana@example.com",
-  phone: "0123 456 789",
-  address: "123 Đường ABC, Quận 1, TP.HCM",
-  avatar: null,
-  joinDate: "15/01/2024",
-  status: "active",
-  stats: {
-    orders: 12,
-    measurements: 3,
-    favorites: 8,
-  },
+type ProfileOverviewProps = {
+  user: {
+    name: string
+    email: string
+    phone: string | null
+    avatar: string | null
+    joinDate: string
+    stats: {
+      orders: number
+      measurements: number
+      customOrders: number
+    }
+  }
 }
 
 const quickLinks = [
@@ -64,7 +63,14 @@ const quickLinks = [
     href: "/profile/orders",
     icon: Package,
     title: "Lịch sử đơn hàng",
-    description: "Xem các đơn hàng đã đặt",
+    description: "Xem đơn mua, thuê và hoàn tiền",
+    color: "text-primary",
+  },
+  {
+    href: "/profile/custom-orders",
+    icon: Scissors,
+    title: "Đặt may của tôi",
+    description: "Nhận báo giá, xem tiến độ và nhắn tin với seller",
     color: "text-primary",
   },
   {
@@ -76,7 +82,9 @@ const quickLinks = [
   },
 ]
 
-export function ProfileOverview() {
+export function ProfileOverview({ user }: ProfileOverviewProps) {
+  const joinDate = new Date(user.joinDate).toLocaleDateString("vi-VN")
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
@@ -99,7 +107,7 @@ export function ProfileOverview() {
             Thông tin cá nhân
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Quản lý thông tin tài khoản và số đo của bạn
+            Quản lý tài khoản, đơn hàng và các yêu cầu đặt may của bạn.
           </p>
         </div>
       </div>
@@ -107,7 +115,6 @@ export function ProfileOverview() {
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* Profile Card */}
             <Card className="border-border/60 lg:col-span-1">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
@@ -142,67 +149,25 @@ export function ProfileOverview() {
                 <Separator />
 
                 <div className="space-y-3 text-sm">
-                  <div className="flex items-start gap-3">
-                    <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="font-medium">{user.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">
-                        Số điện thoại
-                      </p>
-                      <p className="font-medium">{user.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">Địa chỉ</p>
-                      <p className="font-medium">{user.address}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">Tham gia</p>
-                      <p className="font-medium">{user.joinDate}</p>
-                    </div>
-                  </div>
+                  <Info icon={Mail} label="Email" value={user.email} />
+                  <Info
+                    icon={Phone}
+                    label="Số điện thoại"
+                    value={user.phone ?? "Chưa cập nhật"}
+                  />
+                  <Info icon={Calendar} label="Tham gia" value={joinDate} />
                 </div>
 
                 <Separator />
 
                 <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">
-                      {user.stats.orders}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Đơn hàng</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">
-                      {user.stats.measurements}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Số đo</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">
-                      {user.stats.favorites}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Yêu thích</p>
-                  </div>
+                  <Stat label="Đơn hàng" value={user.stats.orders} />
+                  <Stat label="Số đo" value={user.stats.measurements} />
+                  <Stat label="Đặt may" value={user.stats.customOrders} />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Quick Links */}
             <div className="space-y-4 lg:col-span-2">
               <h2 className="text-lg font-bold">Quản lý tài khoản</h2>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -212,7 +177,7 @@ export function ProfileOverview() {
                     <Link key={link.href} href={link.href}>
                       <Card className="group border-border/60 transition-all hover:border-primary/50 hover:shadow-sm">
                         <CardContent className="flex items-start gap-4 p-5">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                             <Icon className={`h-6 w-6 ${link.color}`} />
                           </div>
                           <div className="flex-1">
@@ -230,63 +195,41 @@ export function ProfileOverview() {
                   )
                 })}
               </div>
-
-              {/* Recent Activity */}
-              <Card className="border-border/60">
-                <CardHeader>
-                  <CardTitle className="text-base">Hoạt động gần đây</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      {
-                        action: "Đặt may mới",
-                        detail: "Genshin Impact – Raiden Shogun",
-                        time: "2 giờ trước",
-                        icon: Package,
-                      },
-                      {
-                        action: "Cập nhật số đo",
-                        detail: "Số đo mặc định",
-                        time: "1 ngày trước",
-                        icon: Ruler,
-                      },
-                      {
-                        action: "Chỉnh sửa thông tin",
-                        detail: "Cập nhật địa chỉ giao hàng",
-                        time: "3 ngày trước",
-                        icon: User,
-                      },
-                    ].map((activity, i) => {
-                      const Icon = activity.icon
-                      return (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                            <Icon className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">
-                              {activity.action}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {activity.detail}
-                            </p>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {activity.time}
-                          </p>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>
       </main>
 
       <Footer />
+    </div>
+  )
+}
+
+function Info({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="flex-1">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="font-medium">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-2xl font-bold text-primary">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   )
 }

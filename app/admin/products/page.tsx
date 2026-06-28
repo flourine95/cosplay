@@ -1,5 +1,14 @@
 import Link from "next/link"
-import { Package, Pencil, Plus } from "lucide-react"
+import {
+  CheckCircle2,
+  Clock3,
+  EyeOff,
+  Package,
+  Pencil,
+  Plus,
+} from "lucide-react"
+import { ProductStatus } from "@/app/generated/prisma/enums"
+import { ProductModerationActions } from "@/components/admin/products/product-moderation-actions"
 import { ProductStatusSelect } from "@/components/admin/products/product-status-select"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +24,16 @@ export default async function AdminProductsPage() {
     orderBy: { createdAt: "desc" },
     take: 50,
   })
+
+  const pendingCount = products.filter(
+    (product) => product.status === ProductStatus.DRAFT
+  ).length
+  const activeCount = products.filter(
+    (product) => product.status === ProductStatus.ACTIVE
+  ).length
+  const hiddenCount = products.filter(
+    (product) => product.status === ProductStatus.DISCONTINUED
+  ).length
 
   return (
     <div className="space-y-6">
@@ -36,6 +55,48 @@ export default async function AdminProductsPage() {
         </Button>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Chờ duyệt
+            </CardTitle>
+            <Clock3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              {pendingCount}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Đã duyệt
+            </CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-emerald-600">
+              {activeCount}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Từ chối/Ẩn
+            </CardTitle>
+            <EyeOff className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-destructive">
+              {hiddenCount}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle>Danh sách sản phẩm</CardTitle>
@@ -50,12 +111,13 @@ export default async function AdminProductsPage() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-border/60">
-              <div className="grid grid-cols-[1fr_140px_140px_150px_100px_80px] gap-4 border-b border-border/60 bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground">
+              <div className="grid grid-cols-[1fr_140px_140px_150px_100px_180px_80px] gap-4 border-b border-border/60 bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground">
                 <span>Sản phẩm</span>
                 <span>Danh mục</span>
                 <span>Seller</span>
                 <span>Trạng thái</span>
                 <span className="text-right">Tồn kho</span>
+                <span className="text-right">Kiểm duyệt</span>
                 <span className="text-right">Sửa</span>
               </div>
               {products.map((product) => {
@@ -67,7 +129,7 @@ export default async function AdminProductsPage() {
                 return (
                   <div
                     key={product.id}
-                    className="grid grid-cols-[1fr_140px_140px_150px_100px_80px] items-center gap-4 border-b border-border/40 px-4 py-3 text-sm last:border-b-0"
+                    className="grid grid-cols-[1fr_140px_140px_150px_100px_180px_80px] items-center gap-4 border-b border-border/40 px-4 py-3 text-sm last:border-b-0"
                   >
                     <div>
                       <p className="font-medium text-foreground">
@@ -88,6 +150,10 @@ export default async function AdminProductsPage() {
                       status={product.status}
                     />
                     <span className="text-right font-medium">{totalStock}</span>
+                    <ProductModerationActions
+                      productId={product.id}
+                      status={product.status}
+                    />
                     <span className="text-right">
                       <Button variant="ghost" size="icon-sm" asChild>
                         <Link href={`/admin/products/${product.id}/edit`}>

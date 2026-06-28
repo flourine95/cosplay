@@ -99,6 +99,7 @@ type FormErrors = {
 }
 
 type UploadedFile = {
+  file: File
   name: string
   preview: string
 }
@@ -118,28 +119,70 @@ export function CustomOrderForm() {
   const [draftSaved, setDraftSaved] = useState(false)
   const router = useRouter()
 
+  const uploadReferenceImages = async () => {
+    const formData = new FormData()
+    uploadedFiles.forEach((item) => {
+      formData.append("files", item.file)
+    })
+
+    const response = await fetch("/api/custom-order-images", {
+      method: "POST",
+      body: formData,
+    })
+    const json = await response.json()
+
+    if (!response.ok) {
+      throw new Error(json.error ?? "Không thể tải ảnh tham khảo lên")
+    }
+
+    return json.data.urls as string[]
+  }
+
   const handleSubmit = async () => {
     if (!validate()) return
 
     setIsSubmitting(true)
 
-    // Mock API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const referenceImages = await uploadReferenceImages()
+      const response = await fetch("/api/custom-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: projectName,
+          description: details,
+          characterName: projectName,
+          animeName: category || undefined,
+          specialRequests: details,
+          deadline: date?.toISOString(),
+          estimatedPrice: budget ? Number(budget) : undefined,
+          referenceImages,
+        }),
+      })
+      const json = await response.json()
 
-    // Clear draft after successful submit
-    localStorage.removeItem(DRAFT_KEY)
+      if (!response.ok) {
+        throw new Error(json.error ?? "Không thể gửi yêu cầu đặt may")
+      }
 
-    // Generate random ID in event handler (not during render)
-    // This is safe because it's in an async event handler, not during render
-    // eslint-disable-next-line react-hooks/purity
-    const randomId = Math.floor(10000 + Math.random() * 90000)
+      localStorage.removeItem(DRAFT_KEY)
 
-    // Redirect to success page with order info
-    const params = new URLSearchParams({
-      id: randomId.toString(),
-      name: encodeURIComponent(projectName),
-    })
-    router.push(`/custom-order/success?${params.toString()}`)
+      const params = new URLSearchParams({
+        id: String(json.data.id),
+        name: projectName,
+      })
+      router.push(`/custom-order/success?${params.toString()}`)
+    } catch (error) {
+      setErrors((current) => ({
+        ...current,
+        details:
+          error instanceof Error
+            ? error.message
+            : "Không thể gửi yêu cầu đặt may",
+      }))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const hasFormData = () => {
@@ -179,8 +222,6 @@ export function CustomOrderForm() {
 
     try {
       const parsed = JSON.parse(draft)
-      // Restore draft data on mount - this is intentional initialization
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (parsed.projectName) setProjectName(parsed.projectName)
       if (parsed.category) setCategory(parsed.category)
       if (parsed.budget) setBudget(parsed.budget)
@@ -341,6 +382,7 @@ export function CustomOrderForm() {
                         if (e.target.files) {
                           const newFiles = Array.from(e.target.files).map(
                             (f) => ({
+                              file: f,
                               name: f.name,
                               preview: URL.createObjectURL(f),
                             })

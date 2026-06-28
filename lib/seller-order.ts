@@ -61,6 +61,7 @@ export function serializeSellerOrder(order: SellerOrderWithRelations) {
 
   return {
     id: order.id,
+    source: "ORDER" as const,
     orderNumber: order.orderNumber,
     orderType,
     customer: {

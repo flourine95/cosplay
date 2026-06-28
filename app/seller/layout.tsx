@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { UserRole } from "@/app/generated/prisma/enums"
+import { SellerStatus, UserRole } from "@/app/generated/prisma/enums"
 import { SellerShell } from "@/components/seller/seller-shell"
 import { getSession } from "@/lib/auth"
 
@@ -13,6 +13,10 @@ export default async function SellerLayout({
 
   if (!user || user.role !== UserRole.SELLER) {
     redirect(`/login?redirect=${encodeURIComponent("/seller")}`)
+  }
+
+  if (user.sellerStatus !== SellerStatus.APPROVED) {
+    redirect("/")
   }
 
   return <SellerShell>{children}</SellerShell>

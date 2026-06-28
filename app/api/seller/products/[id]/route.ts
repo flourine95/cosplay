@@ -137,12 +137,9 @@ export async function PATCH(
               : null,
           sku: data.sku || null,
           type: data.type,
-          status: data.status,
+          status: ProductStatus.DRAFT,
           tags,
-          publishedAt:
-            data.status === ProductStatus.ACTIVE
-              ? (existing.publishedAt ?? new Date())
-              : null,
+          publishedAt: null,
           images: {
             create: data.imageUrls.map((url, index) => ({
               url,

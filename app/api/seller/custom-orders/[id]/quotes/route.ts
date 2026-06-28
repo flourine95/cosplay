@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
-import { CustomOrderStatus } from "@/app/generated/prisma/enums"
+import {
+  CustomOrderStatus,
+  NotificationType,
+} from "@/app/generated/prisma/enums"
 import { requireSeller } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import {
@@ -46,7 +49,13 @@ export async function POST(
 
     const existing = await prisma.customOrder.findUnique({
       where: { id: customOrderId },
-      select: { id: true, sellerId: true, status: true },
+      select: {
+        id: true,
+        userId: true,
+        sellerId: true,
+        status: true,
+        orderNumber: true,
+      },
     })
 
     if (!existing || existing.sellerId !== seller.id) {
@@ -86,6 +95,17 @@ export async function POST(
           estimatedPrice: data.quotedPrice,
           depositAmount: data.depositAmount,
           finalAmount: data.quotedPrice,
+        },
+      })
+
+      await tx.notification.create({
+        data: {
+          userId: existing.userId,
+          type: NotificationType.CUSTOM_ORDER,
+          title: "Seller đã gửi báo giá",
+          content: `Đơn đặt may ${existing.orderNumber} đã có báo giá mới.`,
+          link: `/custom-order/${existing.id}`,
+          data: { customOrderId: existing.id },
         },
       })
 

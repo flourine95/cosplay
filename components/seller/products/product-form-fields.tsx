@@ -1,10 +1,6 @@
 "use client"
 
-import {
-  RentalItemCondition,
-  ProductStatus,
-  ProductType,
-} from "@/app/generated/prisma/enums"
+import { RentalItemCondition, ProductType } from "@/app/generated/prisma/enums"
 import {
   Field,
   FieldDescription,
@@ -253,20 +249,10 @@ export function ProductVisibilityFields({
           </NativeSelectOption>
         </NativeSelect>
       </ProductField>
-      <ProductField
-        label="Trạng thái"
-        description="Giữ Nháp nếu sản phẩm còn thiếu ảnh, size hoặc giá."
-        error={errors.status?.message}
-      >
-        <NativeSelect aria-invalid={!!errors.status} {...register("status")}>
-          <NativeSelectOption value={ProductStatus.DRAFT}>
-            Nháp
-          </NativeSelectOption>
-          <NativeSelectOption value={ProductStatus.ACTIVE}>
-            Hoạt động
-          </NativeSelectOption>
-        </NativeSelect>
-      </ProductField>
+      <div className="rounded-lg border border-border/70 bg-muted/35 p-3 text-sm text-muted-foreground">
+        Sau khi lưu, sản phẩm sẽ chuyển sang trạng thái chờ admin duyệt trước
+        khi hiển thị trên marketplace.
+      </div>
     </FieldGroup>
   )
 }

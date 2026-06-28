@@ -19,10 +19,10 @@ interface ProductStatusSelectProps {
 }
 
 const statusLabels: Record<ProductStatus, string> = {
-  [ProductStatus.DRAFT]: "Nháp",
+  [ProductStatus.DRAFT]: "Chờ duyệt",
   [ProductStatus.ACTIVE]: "Đã duyệt",
   [ProductStatus.OUT_OF_STOCK]: "Hết hàng",
-  [ProductStatus.DISCONTINUED]: "Ngừng bán",
+  [ProductStatus.DISCONTINUED]: "Từ chối/Ẩn",
 }
 
 export const ProductStatusSelect = ({

@@ -32,28 +32,58 @@ export async function GET() {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
     }
 
-    const dbOrders = await prisma.order.findMany({
-      where: { userId: user.id },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                images: true,
+    const [dbOrders, customOrders] = await Promise.all([
+      prisma.order.findMany({
+        where: { userId: user.id },
+        include: {
+          items: {
+            include: {
+              product: {
+                include: {
+                  images: true,
+                },
               },
             },
           },
+          seller: true,
+          returnRequests: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
-        seller: true,
-      },
-      orderBy: { createdAt: "desc" },
-    })
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.customOrder.findMany({
+        where: { userId: user.id },
+        include: {
+          seller: { select: { name: true, shopName: true } },
+          progressUpdates: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ])
 
     const orders = dbOrders.map((order) => ({
+      source: "ORDER",
       id: order.orderNumber,
+      detailUrl: null,
       date: order.createdAt.toISOString(),
       total: Number(order.total),
       status: order.status.toLowerCase(), // map backend status to lowercase frontend status
+      paymentStatus: order.paymentStatus,
+      escrowStatus: order.escrowStatus,
+      returnRequest: order.returnRequests[0]
+        ? {
+            id: order.returnRequests[0].id,
+            status: order.returnRequests[0].status,
+            reason: order.returnRequests[0].reason,
+            adminNote: order.returnRequests[0].adminNote,
+            refundAmount: order.returnRequests[0].refundAmount
+              ? Number(order.returnRequests[0].refundAmount)
+              : null,
+            createdAt: order.returnRequests[0].createdAt.toISOString(),
+          }
+        : null,
       shippingAddress: `${order.shippingAddress}, ${order.shippingWard}, ${order.shippingDistrict}, ${order.shippingCity}`,
       trackingNumber: order.trackingCode || undefined,
       items: order.items.map((item) => {
@@ -70,8 +100,37 @@ export async function GET() {
         }
       }),
     }))
+    const customOrderItems = customOrders.map((order) => ({
+      source: "CUSTOM_ORDER",
+      id: order.orderNumber,
+      customOrderId: order.id,
+      detailUrl: `/custom-order/${order.id}`,
+      date: order.createdAt.toISOString(),
+      total: Number(order.finalAmount ?? order.estimatedPrice ?? 0),
+      status: order.status.toLowerCase(),
+      paymentStatus: order.totalPaid.toNumber() > 0 ? "PAID" : "PENDING",
+      escrowStatus: "CUSTOM_ORDER",
+      returnRequest: null,
+      shippingAddress: undefined,
+      trackingNumber: order.trackingCode || undefined,
+      progressPercent: order.progressUpdates[0]?.progressPercent ?? 0,
+      sellerName: order.seller.shopName ?? order.seller.name,
+      items: [
+        {
+          id: `CUSTOM-${order.id}`,
+          name: order.title,
+          quantity: 1,
+          price: Number(order.finalAmount ?? order.estimatedPrice ?? 0),
+          image: order.referenceImages[0] || "/images/placeholder.jpg",
+        },
+      ],
+    }))
 
-    return NextResponse.json({ orders })
+    return NextResponse.json({
+      orders: [...orders, ...customOrderItems].sort(
+        (a, b) => Date.parse(b.date) - Date.parse(a.date)
+      ),
+    })
   } catch (error) {
     console.error("GET /api/orders error:", error)
     return NextResponse.json(

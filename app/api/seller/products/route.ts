@@ -99,9 +99,9 @@ export async function POST(request: Request) {
             : undefined,
         sku: data.sku || undefined,
         type: data.type,
-        status: data.status,
+        status: ProductStatus.DRAFT,
         tags,
-        publishedAt: data.status === ProductStatus.ACTIVE ? new Date() : null,
+        publishedAt: null,
         images: {
           create: data.imageUrls.map((url, index) => ({
             url,

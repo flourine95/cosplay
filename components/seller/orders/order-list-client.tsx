@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import { toast } from "sonner"
-
-import { OrderStatus } from "@/app/generated/prisma/enums"
+import { CustomOrderStatus, OrderStatus } from "@/app/generated/prisma/enums"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -17,7 +16,11 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
-import { orderStatusLabels, orderTypeLabels } from "./order-constants"
+import {
+  customOrderStatusLabels,
+  orderStatusLabels,
+  orderTypeLabels,
+} from "./order-constants"
 import { OrderDetailDialog } from "./order-detail-dialog"
 import { OrderStats } from "./order-stats"
 import { OrderTable } from "./order-table"
@@ -28,21 +31,34 @@ import type {
   SellerOrdersResponse,
 } from "./order-types"
 
+const allStatuses = [
+  ...Object.values(OrderStatus),
+  ...Object.values(CustomOrderStatus),
+]
+
 const emptyOrders: SellerOrderListItem[] = []
 const emptyStats: SellerOrdersResponse["stats"] = {
   total: 0,
   sale: 0,
   rental: 0,
-  byStatus: Object.fromEntries(
-    Object.values(OrderStatus).map((status) => [status, 0])
-  ) as Record<OrderStatus, number>,
+  custom: 0,
+  byStatus: Object.fromEntries(allStatuses.map((status) => [status, 0])),
 }
 
 const typeFilters: Array<{ label: string; value: OrderTypeFilter }> = [
   { label: "Tất cả", value: "all" },
   { label: orderTypeLabels.SALE, value: "sale" },
   { label: orderTypeLabels.RENTAL, value: "rental" },
+  { label: orderTypeLabels.CUSTOM, value: "custom" },
 ]
+
+const getStatusLabel = (status: OrderStatusFilter) => {
+  if (status === "all") return "Tất cả"
+  if (Object.values(OrderStatus).includes(status as OrderStatus)) {
+    return orderStatusLabels[status as OrderStatus]
+  }
+  return customOrderStatusLabels[status as CustomOrderStatus]
+}
 
 export function OrderListClient() {
   const [data, setData] = useState<SellerOrdersResponse | null>(null)
@@ -82,7 +98,6 @@ export function OrderListClient() {
     const timeoutId = window.setTimeout(() => {
       void loadOrders()
     }, 0)
-
     return () => window.clearTimeout(timeoutId)
   }, [loadOrders])
 
@@ -91,10 +106,7 @@ export function OrderListClient() {
   const normalizedQuery = query.trim().toLowerCase()
 
   const visibleStatuses = useMemo(
-    () =>
-      Object.values(OrderStatus).filter(
-        (status) => (stats.byStatus[status] ?? 0) > 0
-      ),
+    () => allStatuses.filter((status) => (stats.byStatus[status] ?? 0) > 0),
     [stats]
   )
 
@@ -104,7 +116,7 @@ export function OrderListClient() {
     () => [
       { label: "Tất cả", value: "all" },
       ...visibleStatuses.map((status) => ({
-        label: `${orderStatusLabels[status]} (${stats.byStatus[status] ?? 0})`,
+        label: `${getStatusLabel(status)} (${stats.byStatus[status] ?? 0})`,
         value: status,
       })),
     ],
@@ -144,6 +156,8 @@ export function OrderListClient() {
     order: SellerOrderListItem,
     status: OrderStatus
   ) {
+    if (order.source !== "ORDER") return
+
     setUpdatingOrderId(order.id)
     try {
       const response = await fetch(`/api/seller/orders/${order.id}/status`, {
@@ -177,9 +191,9 @@ export function OrderListClient() {
 
       <Card className="border-border/80 bg-card">
         <CardHeader>
-          <CardTitle>Đơn mua & Thuê</CardTitle>
+          <CardTitle>Đơn hàng</CardTitle>
           <CardDescription>
-            Quản lý giao dịch, trạng thái xử lý và lịch sử cập nhật đơn hàng.
+            Quản lý đơn mua, thuê và đặt may trong cùng một màn hình.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
