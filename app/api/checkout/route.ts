@@ -182,15 +182,25 @@ export async function POST(request: NextRequest) {
             subtotal: itemSubtotal,
           })
 
-          // Reduce variant stock (direct value update to remain mock-db compatible)
-          await tx.productVariant.update({
+          // Reduce variant stock atomically
+          const updatedVariant = await tx.productVariant.update({
             where: { id: entry.variant.id },
-            data: { stock: entry.variant.stock - entry.item.quantity },
+            data: {
+              stock: {
+                decrement: entry.item.quantity,
+              },
+            },
           })
+
+          if (updatedVariant.stock < 0) {
+            throw new Error(
+              `Sản phẩm "${entry.product.name}" (Size ${entry.item.size}) không đủ số lượng trong kho`
+            )
+          }
         }
 
         const shippingFee = 35000
-        const tax = Math.round(subtotal * 0.1)
+        const tax = 0
         const total = subtotal + shippingFee + tax
 
         // Create Order
@@ -256,6 +266,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Checkout processing error:", error)
+    if (error instanceof Error && error.message.includes("không đủ số lượng")) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     return NextResponse.json(
       { error: "Có lỗi xảy ra trong quá trình xử lý đơn hàng" },
       { status: 500 }

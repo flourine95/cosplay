@@ -6,7 +6,6 @@ import {
   Package,
   Search,
   Filter,
-  Download,
   Eye,
   Clock,
   CheckCircle2,
@@ -62,58 +61,6 @@ type Order = {
   trackingNumber?: string
 }
 
-const STORAGE_KEY = "orders"
-
-const SAMPLE_ORDERS: Order[] = [
-  {
-    id: "ORD-2024-001",
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    total: 1299000,
-    status: "completed",
-    items: [
-      {
-        id: "P1",
-        name: "Genshin Impact – Raiden Shogun",
-        quantity: 1,
-        price: 1299000,
-      },
-    ],
-    shippingAddress: "123 Đường ABC, Quận 1, TP.HCM",
-    trackingNumber: "VN123456789",
-  },
-  {
-    id: "ORD-2024-002",
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    total: 899000,
-    status: "shipping",
-    items: [
-      {
-        id: "P2",
-        name: "Spy x Family – Anya Forger",
-        quantity: 1,
-        price: 899000,
-      },
-    ],
-    shippingAddress: "456 Đường XYZ, Quận 3, TP.HCM",
-    trackingNumber: "VN987654321",
-  },
-  {
-    id: "ORD-2024-003",
-    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    total: 1599000,
-    status: "processing",
-    items: [
-      {
-        id: "P3",
-        name: "Demon Slayer – Nezuko Kamado",
-        quantity: 1,
-        price: 1599000,
-      },
-    ],
-    shippingAddress: "789 Đường DEF, Quận 7, TP.HCM",
-  },
-]
-
 const statusConfig = {
   pending: {
     label: "Chờ xác nhận",
@@ -147,34 +94,38 @@ const statusConfig = {
   },
 }
 
-// Helper to load from localStorage
-const loadOrders = (): Order[] => {
-  if (typeof window === "undefined") return []
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored) {
-    try {
-      return JSON.parse(stored)
-    } catch (e) {
-      console.error("Failed to load orders:", e)
-    }
-  }
-  return []
-}
-
 export function ProfileOrders() {
-  const [orders, setOrders] = useState<Order[]>(loadOrders)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  // Save to localStorage whenever orders change
+  // Fetch orders from database
   useEffect(() => {
-    if (orders.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(orders))
+    async function fetchOrders() {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const res = await fetch("/api/orders")
+        if (!res.ok) {
+          throw new Error(
+            "Không thể kết nối đến hệ thống để tải danh sách đơn hàng"
+          )
+        }
+        const data = await res.json()
+        setOrders(data.orders || [])
+      } catch (err) {
+        setError((err as Error).message || "Đã xảy ra lỗi")
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [orders])
+    fetchOrders()
+  }, [])
 
   // Filter orders - use useMemo to avoid setState in effect
   useEffect(() => {
@@ -199,10 +150,6 @@ export function ProfileOrders() {
       setFilteredOrders(filtered)
     })
   }, [orders, statusFilter, searchQuery])
-
-  const handleImportSample = () => {
-    setOrders((prev) => [...SAMPLE_ORDERS, ...prev])
-  }
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -249,7 +196,6 @@ export function ProfileOrders() {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight">
@@ -259,19 +205,23 @@ export function ProfileOrders() {
                 Theo dõi và quản lý các đơn hàng của bạn
               </p>
             </div>
-            {orders.length === 0 && (
-              <Button variant="outline" size="sm" onClick={handleImportSample}>
-                <Download className="mr-2 h-4 w-4" />
-                Nhập đơn mẫu
-              </Button>
-            )}
           </div>
         </div>
       </div>
 
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
-          {orders.length === 0 ? (
+          {isLoading ? (
+            <div className="flex min-h-[300px] flex-col items-center justify-center gap-3">
+              <span className="animate-pulse text-sm text-muted-foreground">
+                Đang tải lịch sử đơn hàng...
+              </span>
+            </div>
+          ) : error ? (
+            <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-center">
+              <p className="text-sm font-semibold text-destructive">{error}</p>
+            </div>
+          ) : orders.length === 0 ? (
             <Card className="border-border/60">
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <Package className="mb-4 h-12 w-12 text-muted-foreground/30" />
@@ -282,10 +232,6 @@ export function ProfileOrders() {
                 <div className="mt-6 flex items-center gap-3">
                   <Button asChild>
                     <Link href="/products">Khám phá sản phẩm</Link>
-                  </Button>
-                  <Button variant="outline" onClick={handleImportSample}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Nhập đơn mẫu
                   </Button>
                 </div>
               </CardContent>

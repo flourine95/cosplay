@@ -13,8 +13,11 @@ import { Footer } from "@/components/home/footer"
 
 const paymentMethods = {
   cod: "Thanh toán khi nhận hàng (COD)",
+  bank_transfer: "Chuyển khoản ngân hàng",
   bank: "Chuyển khoản ngân hàng",
+  e_wallet: "Ví điện tử",
   ewallet: "Ví điện tử",
+  credit_card: "Thẻ tín dụng / Debit card",
   card: "Thẻ tín dụng / Debit card",
 }
 

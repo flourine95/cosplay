@@ -1,9 +1,28 @@
 import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
 import { ProductCatalog } from "@/components/product/product-catalog"
-import { products, categories } from "@/lib/products"
+import { prisma } from "@/lib/prisma"
+import { mapDbProductToFrontendProduct } from "@/lib/products-server"
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const dbProducts = await prisma.product.findMany({
+    where: {
+      status: "ACTIVE",
+    },
+    include: {
+      images: true,
+      category: true,
+      rentalItem: true,
+      variants: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  })
+
+  const products = dbProducts.map(mapDbProductToFrontendProduct)
+  const categories = Array.from(new Set(products.map((p) => p.category)))
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />

@@ -3,7 +3,11 @@ import { cache } from "react"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import type { User } from "@/app/generated/prisma/client"
-import { UserStatus } from "@/app/generated/prisma/enums"
+import {
+  SellerStatus,
+  UserRole,
+  UserStatus,
+} from "@/app/generated/prisma/enums"
 
 const SESSION_COOKIE = "session_id"
 const SESSION_DURATION_DAYS = 30
@@ -80,6 +84,18 @@ export const getSession = cache(
 )
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getSession>>>
+
+/**
+ * Trả về user nếu đang đăng nhập với role SELLER và đã được duyệt (APPROVED).
+ * Trả về null nếu không phải seller hoặc shop chưa được duyệt.
+ * Dùng trong các API route dưới /api/seller để kiểm tra quyền.
+ */
+export async function requireSeller(): Promise<SessionUser | null> {
+  const user = await getSession()
+  if (!user || user.role !== UserRole.SELLER) return null
+  if (user.sellerStatus !== SellerStatus.APPROVED) return null
+  return user
+}
 
 export function sanitizeUser(user: User) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

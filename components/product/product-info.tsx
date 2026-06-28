@@ -8,6 +8,7 @@ import {
   Truck,
   RotateCcw,
   Shield,
+  Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +18,7 @@ import { formatPrice } from "@/lib/utils"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
 import type { Product } from "@/lib/products"
+import Link from "next/link"
 
 type Mode = "buy" | "rent"
 
@@ -272,6 +274,21 @@ export function ProductInfo({ product }: { product: Product }) {
           <ShoppingCart className="mr-2 size-4" />
           {mode === "buy" ? "Thêm vào giỏ hàng" : `Đặt thuê ${rentDays} ngày`}
         </Button>
+
+        {mode === "rent" && (
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full rounded-full border-amber-600/50 text-amber-700 hover:bg-amber-50"
+            asChild
+          >
+            <Link href={`/rental/${product.slug}`}>
+              <Calendar className="mr-2 size-4 text-amber-600" />
+              Chọn ngày & Xem lịch đặt thuê
+            </Link>
+          </Button>
+        )}
+
         <Button
           size="lg"
           variant="outline"

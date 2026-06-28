@@ -34,52 +34,85 @@ export function CheckoutOrderSummary({
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground">Không có sản phẩm nào</p>
         ) : (
-          items.map((item) => (
-            <Card key={item.id} className="p-4">
-              <div className="flex gap-4">
-                {/* Product image */}
-                <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover"
-                    sizes="64px"
-                  />
-                </div>
-
-                {/* Product details */}
-                <div className="flex-1">
-                  <h3 className="line-clamp-1 text-sm font-semibold text-foreground">
-                    {item.name}
-                  </h3>
-                  <div className="mt-1 flex gap-1.5">
-                    <Badge
-                      variant="outline"
-                      className="px-1.5 py-0 text-[10px] font-normal"
-                    >
-                      Size: {item.size}
-                    </Badge>
-                    <Badge
-                      variant="secondary"
-                      className="px-1.5 py-0 text-[10px] font-normal"
-                    >
-                      {item.type === "Mua"
-                        ? "Mua"
-                        : `Thuê ${item.rentDays || 3} ngày`}
-                    </Badge>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {formatCartPrice(item.price)} × {item.quantity}
-                    </span>
-                    <span className="text-sm font-semibold text-foreground">
-                      {formatCartPrice(item.price * item.quantity)}
-                    </span>
-                  </div>
-                </div>
+          Object.entries(
+            items.reduce<
+              Record<string, { shopName: string; items: CartItem[] }>
+            >((acc, item) => {
+              const sId = item.sellerId || "default"
+              const sName = item.shopName || "Cosplay.vn Store"
+              if (!acc[sId]) {
+                acc[sId] = { shopName: sName, items: [] }
+              }
+              acc[sId].items.push(item)
+              return acc
+            }, {})
+          ).map(([sellerId, group]) => (
+            <div
+              key={sellerId}
+              className="space-y-3 rounded-xl border border-border bg-background p-4 shadow-sm"
+            >
+              {/* Seller Header */}
+              <div className="mb-2 flex items-center gap-1.5 border-b border-border/50 pb-2">
+                <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                  Cửa hàng:
+                </span>
+                <span className="text-xs font-bold text-primary">
+                  {group.shopName}
+                </span>
               </div>
-            </Card>
+
+              {/* Group items */}
+              <div className="space-y-3">
+                {group.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex gap-3 py-1 first:pt-0 last:pb-0"
+                  >
+                    {/* Product image */}
+                    <div className="relative size-12 shrink-0 overflow-hidden rounded-md bg-muted">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                      />
+                    </div>
+
+                    {/* Product details */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-xs font-semibold text-foreground">
+                        {item.name}
+                      </h3>
+                      <div className="mt-0.5 flex gap-1">
+                        <Badge
+                          variant="outline"
+                          className="px-1 py-0 text-[9px] font-normal"
+                        >
+                          Size: {item.size}
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          className="px-1 py-0 text-[9px] font-normal"
+                        >
+                          {item.type === "Mua"
+                            ? "Mua"
+                            : `Thuê ${item.rentDays || 3} ngày`}
+                        </Badge>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formatCartPrice(item.price)} × {item.quantity}
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {formatCartPrice(item.price * item.quantity)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ))
         )}
       </div>

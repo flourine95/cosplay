@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Bell, Menu } from "lucide-react"
 import { useState } from "react"
-import { sellerNavItems } from "./seller-data"
+import { sellerNavItems } from "./seller-nav"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -51,7 +51,7 @@ function NavLinks({
   )
 }
 
-export function SellerShellNew({ children }: { children: React.ReactNode }) {
+export function SellerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 

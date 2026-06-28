@@ -16,6 +16,7 @@ export async function GET() {
         product: {
           include: {
             images: true,
+            seller: true,
           },
         },
         variant: true,
@@ -55,6 +56,8 @@ export async function GET() {
         rentDays: rentDays,
         price: price,
         quantity: item.quantity,
+        sellerId: item.product?.sellerId.toString(),
+        shopName: item.product?.seller?.shopName || "Cosplay.vn Store",
       }
     })
 

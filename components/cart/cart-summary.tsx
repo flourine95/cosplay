@@ -24,7 +24,11 @@ export function CartSummary({
   totalItems,
   clearCart,
 }: CartSummaryProps) {
-  const shippingCost = totalItems > 0 ? 35000 : 0
+  const uniqueSellers = new Set(
+    items.map((item) => item.sellerId).filter(Boolean)
+  )
+  const sellerCount = uniqueSellers.size
+  const shippingCost = sellerCount * 35000
   const finalTotal = totalPrice + shippingCost
 
   const handleClearCart = async () => {

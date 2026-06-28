@@ -31,17 +31,28 @@ import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
-const PRICE_PER_DAY = 150000
-const SECURITY_DEPOSIT = 500000
+export interface SerializedRentalItem {
+  id: number
+  productId: number
+  productSlug: string
+  pricePerDay: number
+  depositAmount: number
+  condition: string
+  product: {
+    name: string
+    image: string
+    shopName: string
+    description: string
+  }
+}
 
-const disabledDates = [
-  new Date(2026, 4, 10),
-  new Date(2026, 4, 11),
-  new Date(2026, 4, 12),
-  new Date(2026, 4, 18),
-  new Date(2026, 4, 19),
-]
+export interface RentalBookingProps {
+  rentalItem: SerializedRentalItem
+  existingBookings: Array<{ from: string; to: string }>
+}
 
 const policies = [
   { Icon: Package, text: "Giao hàng toàn quốc qua đơn vị vận chuyển uy tín" },
@@ -50,11 +61,16 @@ const policies = [
   { Icon: ShieldCheck, text: "Cọc hoàn trả 100% khi đồ nguyên vẹn, trong 24h" },
 ]
 
-export function RentalBooking() {
+export function RentalBooking({
+  rentalItem,
+  existingBookings,
+}: RentalBookingProps) {
   const [date, setDate] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
 
   const rentalDays = (() => {
     if (date?.from && date?.to) return differenceInDays(date.to, date.from) + 1
@@ -62,9 +78,55 @@ export function RentalBooking() {
     return 0
   })()
 
+  const PRICE_PER_DAY = rentalItem.pricePerDay
+  const SECURITY_DEPOSIT = rentalItem.depositAmount
+
   const totalRentalFee = rentalDays * PRICE_PER_DAY
   const totalPayment = totalRentalFee + SECURITY_DEPOSIT
   const canBook = !!(date?.from && date?.to)
+
+  const disabledRanges = [
+    { before: new Date() }, // disable past dates
+    ...existingBookings.map((b) => ({
+      from: new Date(b.from),
+      to: new Date(b.to),
+    })),
+  ]
+
+  const handleBook = async () => {
+    if (!date?.from || !date?.to) return
+
+    try {
+      setIsSubmitting(true)
+      const res = await fetch("/api/rental/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rentalItemId: rentalItem.id,
+          startDate: date.from.toISOString(),
+          endDate: date.to.toISOString(),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast.error("Vui lòng đăng nhập để thực hiện đặt thuê")
+          router.push(`/login?redirect=/rental/${rentalItem.id}`)
+          return
+        }
+        throw new Error(data.error || "Không thể thực hiện đặt thuê đồ")
+      }
+
+      toast.success("Đặt lịch thuê cosplay thành công!")
+      router.push(`/rental/management?orderId=${data.order.id}`)
+    } catch (err) {
+      toast.error((err as Error).message || "Đã xảy ra lỗi")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,10 +140,10 @@ export function RentalBooking() {
             </Link>
             <ChevronRight className="h-3 w-3" />
             <Link
-              href="/rental"
+              href="/products"
               className="transition-colors hover:text-foreground"
             >
-              Thuê đồ
+              Sản phẩm
             </Link>
             <ChevronRight className="h-3 w-3" />
             <span className="font-medium text-foreground">Đặt lịch thuê</span>
@@ -97,8 +159,8 @@ export function RentalBooking() {
               <div className="flex gap-4 p-4">
                 <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
                   <Image
-                    src="https://images.unsplash.com/photo-1635805737707-575885ab0820?w=200&h=200&fit=crop"
-                    alt="Yae Miko Cosplay"
+                    src={rentalItem.product.image}
+                    alt={rentalItem.product.name}
                     fill
                     className="object-cover"
                   />
@@ -108,10 +170,10 @@ export function RentalBooking() {
                     Thuê đồ
                   </Badge>
                   <h1 className="text-lg leading-tight font-extrabold tracking-tight">
-                    Genshin Impact – Yae Miko
+                    {rentalItem.product.name}
                   </h1>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    Size M • Bao gồm tai + đuôi cáo
+                    Tình trạng đồ: {rentalItem.condition}
                   </p>
                   <div className="mt-1.5 flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((s) => (
@@ -135,7 +197,7 @@ export function RentalBooking() {
                   <p className="text-xs text-muted-foreground">
                     Shop:{" "}
                     <span className="cursor-pointer font-medium text-primary hover:underline">
-                      WibuStore
+                      {rentalItem.product.shopName}
                     </span>
                   </p>
                 </div>
@@ -157,11 +219,11 @@ export function RentalBooking() {
                 <Calendar
                   initialFocus
                   mode="range"
-                  defaultMonth={new Date(2026, 4, 1)}
+                  defaultMonth={new Date()}
                   selected={date}
                   onSelect={setDate}
                   numberOfMonths={2}
-                  disabled={[...disabledDates, { before: new Date() }]}
+                  disabled={disabledRanges}
                   className="rounded-xl border bg-card shadow-inner"
                 />
               </CardContent>
@@ -298,11 +360,14 @@ export function RentalBooking() {
                 <Button
                   size="lg"
                   className="h-12 w-full rounded-xl text-base font-semibold"
-                  disabled={!canBook}
+                  disabled={!canBook || isSubmitting}
+                  onClick={handleBook}
                 >
-                  {canBook
-                    ? `Xác nhận & Thanh toán ${totalPayment.toLocaleString()} đ`
-                    : "Vui lòng chọn ngày thuê"}
+                  {isSubmitting
+                    ? "Đang xử lý đặt lịch..."
+                    : canBook
+                      ? `Xác nhận & Thanh toán ${totalPayment.toLocaleString()} đ`
+                      : "Vui lòng chọn ngày thuê"}
                 </Button>
                 <Button
                   variant="ghost"
