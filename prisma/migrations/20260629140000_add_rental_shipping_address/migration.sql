@@ -1,0 +1,8 @@
+ALTER TABLE "RentalOrder"
+ADD COLUMN "shippingName" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingPhone" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingAddress" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingCity" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingDistrict" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingWard" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingNote" TEXT;

@@ -1,16 +1,17 @@
 "use client"
 
 import {
+  BarChart3,
+  DollarSign,
+  Grid,
   LayoutDashboard,
   Package,
-  Users,
-  Store,
-  ShoppingCart,
-  Receipt,
-  Grid,
   Percent,
-  DollarSign,
-  BarChart3,
+  Receipt,
+  RotateCcw,
+  ShoppingCart,
+  Store,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -22,6 +23,7 @@ const menuItems = [
   { label: "Quản lý sản phẩm", icon: Package, href: "/admin/products" },
   { label: "Quản lý Seller", icon: Store, href: "/admin/sellers" },
   { label: "Quản lý đơn hàng", icon: ShoppingCart, href: "/admin/orders" },
+  { label: "Hoàn tiền / Tranh chấp", icon: RotateCcw, href: "/admin/disputes" },
   { label: "Quản lý hóa đơn", icon: Receipt, href: "/admin/invoices" },
   { label: "Quản lý danh mục", icon: Grid, href: "/admin/categories" },
   { label: "Quản lý phí sàn", icon: Percent, href: "/admin/fees" },

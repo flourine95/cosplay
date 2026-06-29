@@ -1,10 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { Bell } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Bell, LogOut } from "lucide-react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useAuth } from "@/stores/auth-store"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +18,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export default function Header() {
+  const router = useRouter()
+  const { logout, user } = useAuth()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    await logout()
+    router.push("/login")
+    router.refresh()
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center gap-4 px-4 md:px-6">
@@ -104,11 +118,16 @@ export default function Header() {
               <Button variant="ghost" className="gap-2">
                 <Avatar className="h-7 w-7">
                   <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-                    AD
+                    {user?.name
+                      ?.split(" ")
+                      .map((part) => part.charAt(0))
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase() ?? "AD"}
                   </AvatarFallback>
                 </Avatar>
                 <span className="hidden text-sm font-medium sm:inline-block">
-                  Admin System
+                  {user?.name ?? "Admin System"}
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -119,8 +138,13 @@ export default function Header() {
               <DropdownMenuItem>Cài đặt hệ thống</DropdownMenuItem>
               <DropdownMenuItem>Nhật ký hoạt động</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                Đăng xuất
+              <DropdownMenuItem
+                className="text-destructive"
+                disabled={isLoggingOut}
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

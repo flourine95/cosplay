@@ -45,3 +45,6 @@ __pycache__/
 
 
 /app/generated/prisma
+
+# Local/runtime uploads
+/public/uploads/

@@ -31,6 +31,7 @@ import {
   type AdminProductFormValues,
   type AdminProductInput,
 } from "@/schemas/admin-product"
+import { formatCurrency } from "@/lib/format"
 
 interface ProductCreateFormProps {
   categories: {
@@ -137,12 +138,15 @@ export const ProductCreateForm = ({
 
   const productType = useWatch({ control, name: "type" })
   const productName = useWatch({ control, name: "name" })
+  const productPrice = useWatch({ control, name: "price" })
   const sellerId = useWatch({ control, name: "sellerId" })
   const categoryId = useWatch({ control, name: "categoryId" })
   const productStatus = useWatch({ control, name: "status" })
   const rentalCondition = useWatch({ control, name: "rentalCondition" })
   const isRentalEnabled =
     productType === ProductType.RENTAL || productType === ProductType.BOTH
+  const depositPreview =
+    Number(productPrice || 0) > 0 ? formatCurrency(Number(productPrice)) : null
 
   useEffect(() => {
     return () => {
@@ -247,7 +251,7 @@ export const ProductCreateForm = ({
       ...data,
       comparePrice: normalizeOptionalNumber(data.comparePrice),
       rentalPricePerDay: normalizeOptionalNumber(data.rentalPricePerDay),
-      rentalDepositAmount: normalizeOptionalNumber(data.rentalDepositAmount),
+      rentalDepositAmount: normalizeOptionalNumber(data.price),
       rentalMaxDays: normalizeOptionalNumber(data.rentalMaxDays),
       tags: splitTags(tagsText),
       imageUrls,
@@ -538,16 +542,17 @@ export const ProductCreateForm = ({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="rentalDepositAmount">Tiền cọc</Label>
-                    <Input
+                    <div
                       id="rentalDepositAmount"
-                      type="number"
-                      min="0"
-                      aria-invalid={!!errors.rentalDepositAmount}
-                      {...register(
-                        "rentalDepositAmount",
-                        optionalNumberRegister
-                      )}
-                    />
+                      className="rounded-md border border-border bg-muted/35 px-3 py-2"
+                    >
+                      <p className="text-sm font-medium text-foreground">
+                        {depositPreview ?? "Nhap gia ban de he thong tinh coc"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Coc co dinh bang 100% gia ban de giam rui ro mat do.
+                      </p>
+                    </div>
                     {errors.rentalDepositAmount && (
                       <p className="text-xs text-destructive">
                         {errors.rentalDepositAmount.message}

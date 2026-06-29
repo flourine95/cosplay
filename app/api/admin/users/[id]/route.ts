@@ -66,7 +66,9 @@ export async function PATCH(request: Request, context: RouteContext) {
           role: data.role,
           status: data.status,
           sellerStatus:
-            data.role === UserRole.SELLER ? SellerStatus.PENDING : null,
+            data.role === UserRole.SELLER ? SellerStatus.APPROVED : null,
+          sellerApprovedAt: data.role === UserRole.SELLER ? new Date() : null,
+          sellerApprovedBy: data.role === UserRole.SELLER ? admin.id : null,
         },
         select: {
           id: true,

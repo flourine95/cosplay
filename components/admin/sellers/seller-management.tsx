@@ -1,5 +1,9 @@
 import { AlertCircle, CheckCircle, Star, Store, TrendingUp } from "lucide-react"
 import { SellerStatus } from "@/app/generated/prisma/enums"
+import {
+  SellerApprovalDialog,
+  type SellerApprovalProfile,
+} from "@/components/admin/sellers/seller-approval-dialog"
 import { SellerStatusSelect } from "@/components/admin/sellers/seller-status-select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,8 +20,16 @@ type SellerRow = {
   id: number
   name: string
   email: string
+  phone: string | null
   shopName: string | null
+  shopDescription: string | null
+  businessLicense: string | null
+  taxCode: string | null
+  bankName: string | null
+  bankAccount: string | null
+  bankAccountName: string | null
   sellerStatus: SellerStatus | null
+  sellerApprovedAt: Date | null
   sellerRating: number
   sellerTotalSales: number
   createdAt: Date
@@ -42,6 +54,24 @@ const formatCurrency = (value: number): string =>
 const formatDate = (value: Date): string =>
   new Intl.DateTimeFormat("vi-VN").format(value)
 
+const toApprovalProfile = (seller: SellerRow): SellerApprovalProfile => ({
+  id: seller.id,
+  name: seller.name,
+  email: seller.email,
+  phone: seller.phone,
+  shopName: seller.shopName,
+  shopDescription: seller.shopDescription,
+  businessLicense: seller.businessLicense,
+  taxCode: seller.taxCode,
+  bankName: seller.bankName,
+  bankAccount: seller.bankAccount,
+  bankAccountName: seller.bankAccountName,
+  sellerStatus: seller.sellerStatus,
+  sellerApprovedAt: seller.sellerApprovedAt?.toISOString() ?? null,
+  productCount: seller.productCount,
+  revenue: seller.revenue,
+})
+
 export default function SellerManagement({ sellers }: SellerManagementProps) {
   const pendingCount = sellers.filter(
     (seller) => seller.sellerStatus === SellerStatus.PENDING
@@ -49,12 +79,23 @@ export default function SellerManagement({ sellers }: SellerManagementProps) {
   const approvedCount = sellers.filter(
     (seller) => seller.sellerStatus === SellerStatus.APPROVED
   ).length
+  const rejectedCount = sellers.filter(
+    (seller) => seller.sellerStatus === SellerStatus.REJECTED
+  ).length
+  const suspendedCount = sellers.filter(
+    (seller) => seller.sellerStatus === SellerStatus.SUSPENDED
+  ).length
   const totalRevenue = sellers.reduce((sum, seller) => sum + seller.revenue, 0)
 
   const stats = [
     { label: "Tổng seller", value: sellers.length, icon: Store },
     { label: "Đã duyệt", value: approvedCount, icon: TrendingUp },
     { label: "Chờ duyệt", value: pendingCount, icon: AlertCircle },
+    {
+      label: "Từ chối / tạm khóa",
+      value: rejectedCount + suspendedCount,
+      icon: AlertCircle,
+    },
   ]
 
   return (
@@ -66,7 +107,7 @@ export default function SellerManagement({ sellers }: SellerManagementProps) {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
@@ -106,13 +147,14 @@ export default function SellerManagement({ sellers }: SellerManagementProps) {
                 <TableHead className="text-center">Sản phẩm</TableHead>
                 <TableHead>Doanh thu</TableHead>
                 <TableHead>Ngày tham gia</TableHead>
+                <TableHead className="text-right">Hồ sơ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sellers.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="h-24 text-center text-muted-foreground"
                   >
                     Chưa có seller nào.
@@ -188,6 +230,11 @@ export default function SellerManagement({ sellers }: SellerManagementProps) {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(seller.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <SellerApprovalDialog
+                        seller={toApprovalProfile(seller)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))

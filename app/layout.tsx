@@ -1,6 +1,7 @@
 import { Be_Vietnam_Pro as BeVietnamPro } from "next/font/google"
 
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/providers/auth-provider"
 import { QueryProvider } from "@/providers/query-provider"
 import { cn } from "@/lib/utils"
@@ -28,6 +29,7 @@ export default function RootLayout({
         <QueryProvider>
           <ThemeProvider>
             <AuthProvider>{children}</AuthProvider>
+            <Toaster />
           </ThemeProvider>
         </QueryProvider>
       </body>

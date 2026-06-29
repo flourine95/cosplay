@@ -1,136 +1,139 @@
-import { Product as FrontendProduct } from "./products"
-import {
-  Product as DbProduct,
-  ProductImage,
-  Category,
-  RentalItem,
-  ProductVariant,
-} from "@/app/generated/prisma/client"
+import { ProductType } from "@/app/generated/prisma/enums"
+import type { Product as FrontendProduct } from "@/lib/products"
 
-export interface DbProductWithRelations extends Omit<
-  DbProduct,
-  "price" | "comparePrice"
-> {
-  price: string | number | { toString(): string }
-  comparePrice: string | number | { toString(): string } | null
-  images?: ProductImage[] | null
-  category?: Category | null
-  rentalItem?:
-    | (Omit<RentalItem, "pricePerDay" | "depositAmount"> & {
-        pricePerDay: string | number | { toString(): string }
-        depositAmount: string | number | { toString(): string }
-      })
-    | null
-  variants?: ProductVariant[] | null
+const PLACEHOLDER_IMAGE = "/images/placeholder.jpg"
+
+type DecimalLike = {
+  toNumber?: () => number
+  toString: () => string
+}
+
+type DbProductVariantForFrontend = {
+  name: string
+  stock: number
+  attributes: unknown
+}
+
+type DbProductForFrontend = {
+  name: string
+  slug: string
+  description: string | null
+  shortDescription: string | null
+  price: DecimalLike
+  comparePrice: DecimalLike | null
+  type: ProductType
+  tags: string[]
+  rating: number
+  reviewCount: number
+  soldCount: number
+  createdAt: Date
+  category?: {
+    name: string
+  } | null
+  images?: Array<{
+    url: string
+    order: number
+    isPrimary: boolean
+  }>
+  variants?: DbProductVariantForFrontend[]
+  rentalItem?: {
+    pricePerDay: DecimalLike
+  } | null
+}
+
+const decimalToNumber = (value: DecimalLike | null | undefined) => {
+  if (!value) return null
+  return value.toNumber ? value.toNumber() : Number(value.toString())
+}
+
+const getVariantSize = (variant: DbProductVariantForFrontend) => {
+  const attributes =
+    typeof variant.attributes === "string"
+      ? JSON.parse(variant.attributes)
+      : variant.attributes
+
+  if (
+    attributes &&
+    typeof attributes === "object" &&
+    "size" in attributes &&
+    typeof attributes.size === "string"
+  ) {
+    return attributes.size
+  }
+
+  return variant.name
+}
+
+const getBadge = (product: DbProductForFrontend) => {
+  if (product.tags.includes("badge:premium")) return "Premium"
+  if (product.tags.includes("badge:hot")) return "Hot"
+  if (product.tags.includes("badge:new")) return "Mới"
+  if (product.soldCount >= 20) return "Bán chạy"
+
+  const daysSinceCreated =
+    (Date.now() - product.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+  if (daysSinceCreated <= 14) return "Mới"
+
+  return null
 }
 
 export function mapDbProductToFrontendProduct(
-  dbProduct: DbProductWithRelations
+  product: DbProductForFrontend
 ): FrontendProduct {
-  const price = Number(dbProduct.price)
-  const originalPrice = dbProduct.comparePrice
-    ? Number(dbProduct.comparePrice)
-    : null
-  const rentPrice = dbProduct.rentalItem
-    ? Number(dbProduct.rentalItem.pricePerDay)
-    : null
-  const canRent = dbProduct.type === "RENTAL" || dbProduct.type === "BOTH"
-
-  // Extract and capitalize the first tag for the series name
-  let series = "Cosplay"
-  if (dbProduct.tags && dbProduct.tags.length > 0) {
-    const [firstTag] = dbProduct.tags
-    if (firstTag) {
-      series = firstTag
-        .split(" ")
-        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ")
-    }
-  }
-
-  // Extract unique sizes from product variants' attributes JSON
-  const sizesSet = new Set<string>()
-  if (dbProduct.variants) {
-    dbProduct.variants.forEach((v: ProductVariant) => {
-      let sizeVal: string | null = null
-      const attrs = v.attributes
-      if (typeof attrs === "string") {
-        try {
-          const parsed = JSON.parse(attrs) as Record<string, unknown>
-          if (
-            parsed &&
-            typeof parsed === "object" &&
-            typeof parsed.size === "string"
-          ) {
-            sizeVal = parsed.size
-          }
-        } catch {
-          // ignore
-        }
-      } else if (attrs && typeof attrs === "object" && !Array.isArray(attrs)) {
-        const obj = attrs as Record<string, unknown>
-        if (typeof obj.size === "string") {
-          sizeVal = obj.size
-        }
-      }
-      if (sizeVal) {
-        sizesSet.add(sizeVal)
-      }
+  const images = [...(product.images ?? [])]
+    .sort((a, b) => {
+      if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1
+      return a.order - b.order
     })
-  }
-  const sizes = sizesSet.size > 0 ? Array.from(sizesSet) : ["S", "M", "L", "XL"]
+    .map((image) => image.url)
 
-  // Dynamically assign badges based on product conditions
-  let badge: string | null = null
-  if (originalPrice && originalPrice > price) {
-    badge = "Giảm giá"
-  } else if (dbProduct.rating >= 4.9 && dbProduct.reviewCount >= 100) {
-    badge = "Bán chạy"
-  } else if (canRent) {
-    badge = "Thuê được"
-  } else if (dbProduct.rating >= 4.8) {
-    badge = "Hot"
-  }
-
-  // Extract and sort images by order
-  const images = dbProduct.images
-    ? [...dbProduct.images]
-        .sort(
-          (a: ProductImage, b: ProductImage) => (a.order || 0) - (b.order || 0)
-        )
-        .map((img: ProductImage) => img.url)
-    : []
-
-  if (images.length === 0) {
-    images.push(
-      "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&h=1000&fit=crop"
+  const sizes = Array.from(
+    new Set(
+      (product.variants ?? []).filter((v) => v.stock > 0).map(getVariantSize)
     )
-  }
+  )
 
-  // Default design details for premium look
-  const details = [
-    { label: "Chất liệu", value: "Vải cao cấp thiết kế" },
-    { label: "Xuất xứ", value: "Sản xuất tại Việt Nam" },
-    { label: "Bảo quản", value: "Giặt tay, phơi bóng mát" },
-    { label: "Giao hàng", value: "2–5 ngày toàn quốc" },
-    { label: "Đổi trả", value: "7 ngày nếu lỗi sản xuất" },
-  ]
+  const price = decimalToNumber(product.price) ?? 0
+  const rentPrice = product.rentalItem
+    ? decimalToNumber(product.rentalItem.pricePerDay)
+    : null
 
   return {
-    slug: dbProduct.slug,
-    name: dbProduct.name,
-    series,
-    category: dbProduct.category?.name || "Cosplay",
+    slug: product.slug,
+    name: product.name,
+    series:
+      product.tags.find((tag) => tag.startsWith("series:"))?.slice(7) ??
+      "Cosplay",
+    category: product.category?.name ?? "Khác",
     price,
-    originalPrice,
+    originalPrice: decimalToNumber(product.comparePrice),
     rentPrice,
-    canRent,
-    rating: dbProduct.rating || 5.0,
-    reviewCount: dbProduct.reviewCount || 0,
-    badge,
-    images,
-    sizes,
-    description: dbProduct.description || "",
-    details,
+    canRent:
+      product.type === ProductType.RENTAL || product.type === ProductType.BOTH,
+    rating: product.rating,
+    reviewCount: product.reviewCount,
+    badge: getBadge(product),
+    images: images.length > 0 ? images : [PLACEHOLDER_IMAGE],
+    sizes: sizes.length > 0 ? sizes : ["M"],
+    description:
+      product.description ??
+      product.shortDescription ??
+      "Sản phẩm cosplay được đăng bán trên cosplay.vn.",
+    details: [
+      { label: "Danh mục", value: product.category?.name ?? "Khác" },
+      {
+        label: "Hình thức",
+        value:
+          product.type === ProductType.BOTH
+            ? "Mua hoặc thuê"
+            : product.type === ProductType.RENTAL
+              ? "Thuê"
+              : "Mua",
+      },
+      { label: "Kích thước", value: sizes.length > 0 ? sizes.join(", ") : "M" },
+      { label: "Giao hàng", value: "2-5 ngày toàn quốc" },
+      { label: "Đổi trả", value: "7 ngày nếu lỗi sản xuất" },
+    ],
+    createdAt: product.createdAt.toISOString(),
   }
 }

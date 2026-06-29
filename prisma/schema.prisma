@@ -44,6 +44,13 @@ model User {
   shopDescription String?
   shopLogo        String?
   shopBanner      String?
+  shopReturnName     String?
+  shopReturnPhone    String?
+  shopReturnAddress  String?
+  shopReturnCity     String?
+  shopReturnDistrict String?
+  shopReturnWard     String?
+  shopReturnNote     String?
 
   businessLicense String?
   taxCode         String?
@@ -701,6 +708,20 @@ model RentalOrder {
   totalDays         Int
   rentalFee         Decimal              @db.Decimal(15, 2)
   depositAmount     Decimal              @db.Decimal(15, 2)
+  shippingName      String               @default("")
+  shippingPhone     String               @default("")
+  shippingAddress   String               @default("")
+  shippingCity      String               @default("")
+  shippingDistrict  String               @default("")
+  shippingWard      String               @default("")
+  shippingNote      String?
+  returnName        String               @default("")
+  returnPhone       String               @default("")
+  returnAddress     String               @default("")
+  returnCity        String               @default("")
+  returnDistrict    String               @default("")
+  returnWard        String               @default("")
+  returnAddressNote String?
   lateFee           Decimal              @default(0) @db.Decimal(15, 2)
   damageFee         Decimal              @default(0) @db.Decimal(15, 2)
   refundAmount      Decimal              @default(0) @db.Decimal(15, 2)
@@ -724,12 +745,47 @@ model RentalOrder {
   user       User       @relation(fields: [userId], references: [id])
   rentalItem RentalItem @relation(fields: [rentalItemId], references: [id])
   payments   Payment[]
+  disputes   RentalDispute[]
 
   @@index([userId])
   @@index([rentalItemId])
   @@index([orderNumber])
   @@index([status])
   @@index([startDate, endDate])
+}
+
+enum RentalDisputeStatus {
+  OPEN
+  SHOP_RESPONDED
+  ADMIN_REVIEWING
+  RESOLVED_REFUND_CUSTOMER
+  RESOLVED_PAY_SHOP
+  RESOLVED_SPLIT
+  CLOSED
+}
+
+model RentalDispute {
+  id            Int                 @id @default(autoincrement())
+  rentalOrderId Int
+  userId        Int
+  sellerId      Int
+  reason        String
+  description   String
+  images        String[]
+  status        RentalDisputeStatus @default(OPEN)
+  shopResponse  String?
+  adminNote     String?
+  refundAmount  Decimal?            @db.Decimal(15, 2)
+  resolvedAt    DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  rentalOrder RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+
+  @@index([rentalOrderId])
+  @@index([userId])
+  @@index([sellerId])
+  @@index([status])
 }
 
 enum NotificationType {
@@ -799,7 +855,6 @@ model Conversation {
   user2    User      @relation("ConversationsAsUser2", fields: [user2Id], references: [id], onDelete: Cascade)
   messages Message[]
 
-  @@unique([user1Id, user2Id])
   @@index([user1Id])
   @@index([user2Id])
   @@index([orderId])

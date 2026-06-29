@@ -91,6 +91,25 @@ const measurements = [
   { label: "Dài quần", unit: "cm", placeholder: "100" },
 ]
 
+const measurementKeys = [
+  "height",
+  "weight",
+  "chest",
+  "waist",
+  "hips",
+  "shoulder",
+  "armLength",
+  "legLength",
+] as const
+
+type MeasurementKey = (typeof measurementKeys)[number]
+type MeasurementValues = Record<MeasurementKey, string>
+
+const emptyMeasurementValues = measurementKeys.reduce((acc, key) => {
+  acc[key] = ""
+  return acc
+}, {} as MeasurementValues)
+
 type FormErrors = {
   projectName?: string
   details?: string
@@ -99,6 +118,7 @@ type FormErrors = {
 }
 
 type UploadedFile = {
+  file: File
   name: string
   preview: string
 }
@@ -112,38 +132,94 @@ export function CustomOrderForm() {
   const [category, setCategory] = useState("")
   const [budget, setBudget] = useState("")
   const [details, setDetails] = useState("")
+  const [measurementValues, setMeasurementValues] = useState<MeasurementValues>(
+    emptyMeasurementValues
+  )
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
   const router = useRouter()
 
+  const uploadReferenceImages = async () => {
+    const formData = new FormData()
+    uploadedFiles.forEach((item) => {
+      formData.append("files", item.file)
+    })
+
+    const response = await fetch("/api/custom-order-images", {
+      method: "POST",
+      body: formData,
+    })
+    const json = await response.json()
+
+    if (!response.ok) {
+      throw new Error(json.error ?? "Không thể tải ảnh tham khảo lên")
+    }
+
+    return json.data.urls as string[]
+  }
+
   const handleSubmit = async () => {
     if (!validate()) return
 
     setIsSubmitting(true)
 
-    // Mock API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const referenceImages = await uploadReferenceImages()
+      const response = await fetch("/api/custom-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: projectName,
+          description: details,
+          characterName: projectName,
+          animeName: category || undefined,
+          specialRequests: details,
+          deadline: date?.toISOString(),
+          estimatedPrice: budget ? Number(budget) : undefined,
+          referenceImages,
+          measurement: Object.fromEntries(
+            Object.entries(measurementValues)
+              .filter(([, value]) => value.trim())
+              .map(([key, value]) => [key, Number(value)])
+          ),
+        }),
+      })
+      const json = await response.json()
 
-    // Clear draft after successful submit
-    localStorage.removeItem(DRAFT_KEY)
+      if (!response.ok) {
+        throw new Error(json.error ?? "Không thể gửi yêu cầu đặt may")
+      }
 
-    // Generate random ID in event handler (not during render)
-    // This is safe because it's in an async event handler, not during render
-    // eslint-disable-next-line react-hooks/purity
-    const randomId = Math.floor(10000 + Math.random() * 90000)
+      localStorage.removeItem(DRAFT_KEY)
 
-    // Redirect to success page with order info
-    const params = new URLSearchParams({
-      id: randomId.toString(),
-      name: encodeURIComponent(projectName),
-    })
-    router.push(`/custom-order/success?${params.toString()}`)
+      const params = new URLSearchParams({
+        id: String(json.data.id),
+        name: projectName,
+      })
+      router.push(`/custom-order/success?${params.toString()}`)
+    } catch (error) {
+      setErrors((current) => ({
+        ...current,
+        details:
+          error instanceof Error
+            ? error.message
+            : "Không thể gửi yêu cầu đặt may",
+      }))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const hasFormData = () => {
-    return projectName || details || budget || uploadedFiles.length > 0
+    return (
+      projectName ||
+      details ||
+      budget ||
+      uploadedFiles.length > 0 ||
+      Object.values(measurementValues).some((value) => value.trim())
+    )
   }
 
   const handleCancel = () => {
@@ -179,13 +255,17 @@ export function CustomOrderForm() {
 
     try {
       const parsed = JSON.parse(draft)
-      // Restore draft data on mount - this is intentional initialization
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (parsed.projectName) setProjectName(parsed.projectName)
       if (parsed.category) setCategory(parsed.category)
       if (parsed.budget) setBudget(parsed.budget)
       if (parsed.details) setDetails(parsed.details)
       if (parsed.date) setDate(new Date(parsed.date))
+      if (parsed.measurementValues) {
+        setMeasurementValues({
+          ...emptyMeasurementValues,
+          ...parsed.measurementValues,
+        })
+      }
     } catch (e) {
       console.error("Failed to load draft:", e)
     }
@@ -200,6 +280,7 @@ export function CustomOrderForm() {
           category,
           budget,
           details,
+          measurementValues,
           date: date?.toISOString(),
         }
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
@@ -208,7 +289,7 @@ export function CustomOrderForm() {
       }
     }, 3000)
     return () => clearTimeout(timer)
-  }, [projectName, category, budget, details, date])
+  }, [projectName, category, budget, details, measurementValues, date])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -341,6 +422,7 @@ export function CustomOrderForm() {
                         if (e.target.files) {
                           const newFiles = Array.from(e.target.files).map(
                             (f) => ({
+                              file: f,
                               name: f.name,
                               preview: URL.createObjectURL(f),
                             })
@@ -639,23 +721,34 @@ export function CustomOrderForm() {
                     </Link>
                   </div>
                   <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-4 md:grid-cols-4">
-                    {measurements.map((m) => (
-                      <div key={m.label} className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">
-                          {m.label}
-                        </Label>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            placeholder={m.placeholder}
-                            className="h-8 text-sm"
-                          />
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {m.unit}
-                          </span>
+                    {measurements.map((m, index) => {
+                      const measurementKey = measurementKeys[index]!
+
+                      return (
+                        <div key={m.label} className="space-y-1">
+                          <Label className="text-xs font-medium text-muted-foreground">
+                            {m.label}
+                          </Label>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              placeholder={m.placeholder}
+                              value={measurementValues[measurementKey]}
+                              onChange={(event) =>
+                                setMeasurementValues((current) => ({
+                                  ...current,
+                                  [measurementKey]: event.target.value,
+                                }))
+                              }
+                              className="h-8 text-sm"
+                            />
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {m.unit}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>

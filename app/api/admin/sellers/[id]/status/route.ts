@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import {
+  NotificationType,
   SellerStatus,
   UserRole,
   UserStatus,
@@ -16,6 +17,7 @@ const sellerStatusSchema = z.object({
   sellerStatus: z.enum(SellerStatus, {
     error: "Trạng thái seller không hợp lệ",
   }),
+  reason: z.string().max(500, { error: "Lý do tối đa 500 ký tự" }).optional(),
 })
 
 const requireAdmin = async () => {
@@ -53,10 +55,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       )
     }
 
-    const { sellerStatus } = parsed.data
+    const { reason, sellerStatus } = parsed.data
     const seller = await prisma.user.findFirst({
       where: { id: sellerId, role: UserRole.SELLER },
-      select: { id: true },
+      select: { id: true, sellerStatus: true },
     })
 
     if (!seller) {
@@ -66,28 +68,60 @@ export async function PATCH(request: Request, context: RouteContext) {
       )
     }
 
-    const updated = await prisma.user.update({
-      where: { id: sellerId },
-      data: {
-        sellerStatus,
-        sellerApprovedAt:
-          sellerStatus === SellerStatus.APPROVED ? new Date() : null,
-        sellerApprovedBy:
-          sellerStatus === SellerStatus.APPROVED ? admin.id : null,
-        status:
-          sellerStatus === SellerStatus.SUSPENDED
-            ? UserStatus.SUSPENDED
-            : UserStatus.ACTIVE,
-      },
-      select: {
-        id: true,
-        sellerStatus: true,
-        status: true,
-        sellerApprovedAt: true,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const next = await tx.user.update({
+        where: { id: sellerId },
+        data: {
+          sellerStatus,
+          sellerApprovedAt:
+            sellerStatus === SellerStatus.APPROVED ? new Date() : null,
+          sellerApprovedBy:
+            sellerStatus === SellerStatus.APPROVED ? admin.id : null,
+          status:
+            sellerStatus === SellerStatus.SUSPENDED
+              ? UserStatus.SUSPENDED
+              : UserStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+          sellerStatus: true,
+          status: true,
+          sellerApprovedAt: true,
+        },
+      })
+
+      const statusText: Record<SellerStatus, string> = {
+        [SellerStatus.PENDING]: "được chuyển về trạng thái chờ duyệt",
+        [SellerStatus.APPROVED]: "đã được duyệt",
+        [SellerStatus.REJECTED]: "đã bị từ chối",
+        [SellerStatus.SUSPENDED]: "đã bị tạm khóa",
+      }
+
+      await tx.notification.create({
+        data: {
+          userId: sellerId,
+          type: NotificationType.SYSTEM,
+          title: "Cập nhật trạng thái seller",
+          content: `Hồ sơ seller của bạn ${statusText[sellerStatus]}.${
+            reason ? ` Lý do: ${reason}` : ""
+          }`,
+          link: "/seller",
+          data: {
+            sellerStatus,
+            reason: reason ?? null,
+            previousStatus: seller.sellerStatus,
+            updatedBy: admin.id,
+          },
+        },
+      })
+
+      return next
     })
 
-    if (sellerStatus === SellerStatus.SUSPENDED) {
+    if (
+      sellerStatus === SellerStatus.SUSPENDED ||
+      sellerStatus === SellerStatus.REJECTED
+    ) {
       await prisma.session.deleteMany({ where: { userId: sellerId } })
     }
 

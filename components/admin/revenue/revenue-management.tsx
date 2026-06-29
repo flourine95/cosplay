@@ -1,4 +1,5 @@
 import { DollarSign, TrendingUp } from "lucide-react"
+import { PayoutManagement } from "@/components/admin/revenue/payout-management"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -14,12 +15,46 @@ type MonthlyRevenueRow = {
   amount: number
 }
 
+type EligiblePayoutRow = {
+  sellerId: number
+  sellerName: string
+  sellerEmail: string
+  bankName: string | null
+  bankAccount: string | null
+  bankAccountName: string | null
+  orderCount: number
+  grossAmount: number
+  platformFee: number
+  netAmount: number
+}
+
+type PayoutRow = {
+  id: number
+  sellerName: string
+  orderCount: number
+  amount: number
+  platformFee: number
+  netAmount: number
+  status: string
+  bankName: string | null
+  bankAccount: string | null
+  bankAccountName: string | null
+  transferProof: string | null
+  createdAt: string
+  processedAt: string | null
+}
+
 interface RevenueManagementProps {
   currentMonthRevenue: number
   previousMonthRevenue: number
   growthRate: number
   revenueByType: RevenueTypeRow[]
   monthlyRevenue: MonthlyRevenueRow[]
+  eligiblePayouts: EligiblePayoutRow[]
+  payouts: PayoutRow[]
+  escrowHolding: number
+  escrowReady: number
+  escrowReleased: number
 }
 
 const formatCurrency = (value: number): string =>
@@ -40,6 +75,11 @@ export default function RevenueManagement({
   growthRate,
   revenueByType,
   monthlyRevenue,
+  eligiblePayouts,
+  payouts,
+  escrowHolding,
+  escrowReady,
+  escrowReleased,
 }: RevenueManagementProps) {
   const stats = [
     {
@@ -168,6 +208,14 @@ export default function RevenueManagement({
           </div>
         </CardContent>
       </Card>
+
+      <PayoutManagement
+        eligiblePayouts={eligiblePayouts}
+        payouts={payouts}
+        escrowHolding={escrowHolding}
+        escrowReady={escrowReady}
+        escrowReleased={escrowReleased}
+      />
     </div>
   )
 }

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const admin = await requireAdmin()
     if (!admin) {
       return NextResponse.json(
-        { error: "Không có quyền truy cập" },
+        { error: "Khong co quyen truy cap" },
         { status: 403 }
       )
     }
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" },
+        { error: parsed.error.issues[0]?.message ?? "Du lieu khong hop le" },
         { status: 400 }
       )
     }
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     if (!seller) {
       return NextResponse.json(
-        { error: "Seller không tồn tại" },
+        { error: "Seller khong ton tai" },
         { status: 404 }
       )
     }
@@ -54,10 +54,12 @@ export async function POST(request: Request) {
 
     if (!category) {
       return NextResponse.json(
-        { error: "Danh mục không tồn tại" },
+        { error: "Danh muc khong ton tai" },
         { status: 404 }
       )
     }
+
+    const productPrice = new Prisma.Decimal(data.price)
 
     const product = await prisma.product.create({
       data: {
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
         categoryId: data.categoryId,
         description: data.description,
         shortDescription: data.shortDescription,
-        price: new Prisma.Decimal(data.price),
+        price: productPrice,
         comparePrice: data.comparePrice
           ? new Prisma.Decimal(data.comparePrice)
           : undefined,
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
             {
               name: data.variantName,
               sku: data.variantSku || undefined,
-              price: new Prisma.Decimal(data.price),
+              price: productPrice,
               stock: data.stock,
               attributes: { source: "admin-default" },
               isDefault: true,
@@ -102,9 +104,7 @@ export async function POST(request: Request) {
                 create: {
                   sellerId: data.sellerId,
                   pricePerDay: new Prisma.Decimal(data.rentalPricePerDay ?? 0),
-                  depositAmount: new Prisma.Decimal(
-                    data.rentalDepositAmount ?? 0
-                  ),
+                  depositAmount: productPrice,
                   minDays: data.rentalMinDays,
                   maxDays: data.rentalMaxDays,
                   condition: data.rentalCondition,
@@ -136,14 +136,14 @@ export async function POST(request: Request) {
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { error: "Slug, SKU sản phẩm hoặc SKU biến thể đã tồn tại" },
+        { error: "Slug hoac SKU da ton tai" },
         { status: 409 }
       )
     }
 
     console.error("POST /api/admin/products error:", error)
     return NextResponse.json(
-      { error: "Không thể tạo sản phẩm" },
+      { error: "Khong the tao san pham" },
       { status: 500 }
     )
   }
