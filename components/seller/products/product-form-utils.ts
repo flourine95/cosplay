@@ -85,7 +85,7 @@ export function normalizeProductPayload(
     shortDescription: values.shortDescription?.trim() || undefined,
     condition: values.condition?.trim() || undefined,
     rentalPricePerDay: values.rentalPricePerDay || undefined,
-    rentalDepositAmount: values.rentalDepositAmount || undefined,
+    rentalDepositAmount: values.price || undefined,
     rentalAccessories: values.rentalAccessories?.trim() || undefined,
     rentalMaxDays: values.rentalMaxDays || undefined,
     tags: values.tags ?? [],

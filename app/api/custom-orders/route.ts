@@ -97,24 +97,25 @@ export async function POST(request: Request) {
         },
       })
 
-      const conversation = await tx.conversation.upsert({
-        where: {
-          user1Id_user2Id: {
-            user1Id: user.id,
-            user2Id: seller.id,
-          },
-        },
-        create: {
-          user1Id: user.id,
-          user2Id: seller.id,
-          customOrderId: created.id,
-          lastMessageAt: new Date(),
-        },
-        update: {
-          customOrderId: created.id,
-          lastMessageAt: new Date(),
-        },
+      const user1Id = Math.min(user.id, seller.id)
+      const user2Id = Math.max(user.id, seller.id)
+
+      const existingConversation = await tx.conversation.findFirst({
+        where: { user1Id, user2Id, customOrderId: created.id },
       })
+      const conversation = existingConversation
+        ? await tx.conversation.update({
+            where: { id: existingConversation.id },
+            data: { lastMessageAt: new Date() },
+          })
+        : await tx.conversation.create({
+            data: {
+              user1Id,
+              user2Id,
+              customOrderId: created.id,
+              lastMessageAt: new Date(),
+            },
+          })
 
       await tx.message.create({
         data: {

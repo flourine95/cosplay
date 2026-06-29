@@ -132,10 +132,12 @@ export async function GET(request: Request) {
           rental: data.filter((order) => order.orderType === "RENTAL").length,
           custom: data.filter((order) => order.orderType === "CUSTOM").length,
           byStatus: Object.fromEntries(
-            [
-              ...Object.values(OrderStatus),
-              ...Object.values(CustomOrderStatus),
-            ].map((orderStatus) => [
+            Array.from(
+              new Set([
+                ...Object.values(OrderStatus),
+                ...Object.values(CustomOrderStatus),
+              ])
+            ).map((orderStatus) => [
               orderStatus,
               data.filter((order) => order.status === orderStatus).length,
             ])

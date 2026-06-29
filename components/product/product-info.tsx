@@ -272,9 +272,8 @@ export function ProductInfo({ product }: { product: Product }) {
           onClick={handleAddToCart}
         >
           <ShoppingCart className="mr-2 size-4" />
-          {mode === "buy" ? "Thêm vào giỏ hàng" : `Đặt thuê ${rentDays} ngày`}
+          Thêm vào giỏ hàng
         </Button>
-
         {mode === "rent" && (
           <Button
             size="lg"

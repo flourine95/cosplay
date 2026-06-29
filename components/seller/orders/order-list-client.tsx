@@ -31,10 +31,9 @@ import type {
   SellerOrdersResponse,
 } from "./order-types"
 
-const allStatuses = [
-  ...Object.values(OrderStatus),
-  ...Object.values(CustomOrderStatus),
-]
+const allStatuses = Array.from(
+  new Set([...Object.values(OrderStatus), ...Object.values(CustomOrderStatus)])
+)
 
 const emptyOrders: SellerOrderListItem[] = []
 const emptyStats: SellerOrdersResponse["stats"] = {
@@ -317,9 +316,9 @@ function FilterGroup<T extends string>({
       className="max-w-full flex-wrap bg-background"
       aria-label={ariaLabel}
     >
-      {options.map((option) => (
+      {options.map((option, index) => (
         <ToggleGroupItem
-          key={option.value}
+          key={`${option.value}-${index}`}
           value={option.value}
           className={cn(
             option.value === value && "bg-primary text-primary-foreground"

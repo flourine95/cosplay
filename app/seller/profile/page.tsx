@@ -30,7 +30,8 @@ export default function SellerProfilePage() {
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight">Hồ sơ seller</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Cập nhật thông tin shop, giấy tờ và tài khoản nhận payout.
+          Cập nhật thông tin shop, địa chỉ nhận đồ trả về và tài khoản nhận
+          payout.
         </p>
       </div>
 

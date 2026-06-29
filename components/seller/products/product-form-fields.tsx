@@ -34,19 +34,12 @@ export function ProductBasicFields({
 }) {
   return (
     <FieldGroup>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         <ProductField label="Tên sản phẩm *" error={errors.name?.message}>
           <Input
             aria-invalid={!!errors.name}
             placeholder="VD: Set Hầu Gái Maid Cosplay"
             {...register("name")}
-          />
-        </ProductField>
-        <ProductField label="Slug *" error={errors.slug?.message}>
-          <Input
-            aria-invalid={!!errors.slug}
-            placeholder="set-hau-gai-maid"
-            {...register("slug")}
           />
         </ProductField>
       </div>
@@ -145,7 +138,13 @@ export function ProductPricingFields({
   )
 }
 
-export function ProductRentalFields({ errors, register }: ProductFieldProps) {
+export function ProductRentalFields({
+  depositPreview,
+  errors,
+  register,
+}: ProductFieldProps & {
+  depositPreview: string | null
+}) {
   return (
     <FieldGroup>
       <div className="grid gap-4 md:grid-cols-2">
@@ -160,18 +159,18 @@ export function ProductRentalFields({ errors, register }: ProductFieldProps) {
             {...register("rentalPricePerDay")}
           />
         </ProductField>
-        <ProductField
-          label="Tiền cọc *"
-          description="Khoản này được giữ để xử lý hư hỏng hoặc quá hạn."
-          error={errors.rentalDepositAmount?.message}
-        >
-          <Input
-            aria-invalid={!!errors.rentalDepositAmount}
-            type="number"
-            min={0}
-            {...register("rentalDepositAmount")}
-          />
-        </ProductField>
+        <Field>
+          <FieldLabel>Tiền cọc</FieldLabel>
+          <div className="rounded-md border border-border bg-muted/35 px-3 py-2">
+            <p className="text-sm font-medium text-foreground">
+              {depositPreview ?? "Nhập giá bán để hệ thống tính cọc"}
+            </p>
+            <FieldDescription>
+              Cọc được cố định bằng 100% giá bán để giảm rủi ro mất đồ.
+            </FieldDescription>
+          </div>
+          <FieldError>{errors.rentalDepositAmount?.message}</FieldError>
+        </Field>
         <ProductField
           label="Số ngày tối thiểu"
           error={errors.rentalMinDays?.message}

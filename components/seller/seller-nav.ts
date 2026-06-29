@@ -16,7 +16,8 @@ export const sellerNavItems = [
   { title: "Tổng quan", href: "/seller", icon: Gauge },
   { title: "Hồ sơ seller", href: "/seller/profile", icon: UserCircle },
   { title: "Quản lý sản phẩm", href: "/seller/products", icon: Package },
-  { title: "Đơn mua & Thuê", href: "/seller/orders", icon: ShoppingBag },
+  { title: "Đơn mua & thuê", href: "/seller/orders", icon: ShoppingBag },
+  { title: "Quản lý đơn thuê", href: "/seller/rentals", icon: CalendarDays },
   { title: "Tin nhắn", href: "/seller/messages", icon: MessageSquare },
   { title: "Lịch trình thuê", href: "/seller/calendar", icon: CalendarDays },
   {

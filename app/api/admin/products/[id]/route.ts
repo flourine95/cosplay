@@ -134,6 +134,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       product.variants[0]
     const hasRental =
       data.type === ProductType.RENTAL || data.type === ProductType.BOTH
+    const productPrice = new Prisma.Decimal(data.price)
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.productImage.deleteMany({ where: { productId } })
@@ -146,7 +147,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           categoryId: data.categoryId,
           description: data.description,
           shortDescription: data.shortDescription,
-          price: new Prisma.Decimal(data.price),
+          price: productPrice,
           comparePrice: data.comparePrice
             ? new Prisma.Decimal(data.comparePrice)
             : null,
@@ -175,7 +176,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           data: {
             name: data.variantName,
             sku: data.variantSku || null,
-            price: new Prisma.Decimal(data.price),
+            price: productPrice,
             stock: data.stock,
             attributes: { source: "admin-default" },
             isDefault: true,
@@ -187,7 +188,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             productId,
             name: data.variantName,
             sku: data.variantSku || undefined,
-            price: new Prisma.Decimal(data.price),
+            price: productPrice,
             stock: data.stock,
             attributes: { source: "admin-default" },
             isDefault: true,
@@ -201,7 +202,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           update: {
             sellerId: data.sellerId,
             pricePerDay: new Prisma.Decimal(data.rentalPricePerDay ?? 0),
-            depositAmount: new Prisma.Decimal(data.rentalDepositAmount ?? 0),
+            depositAmount: productPrice,
             minDays: data.rentalMinDays,
             maxDays: data.rentalMaxDays,
             condition: data.rentalCondition,
@@ -211,7 +212,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             productId,
             sellerId: data.sellerId,
             pricePerDay: new Prisma.Decimal(data.rentalPricePerDay ?? 0),
-            depositAmount: new Prisma.Decimal(data.rentalDepositAmount ?? 0),
+            depositAmount: productPrice,
             minDays: data.rentalMinDays,
             maxDays: data.rentalMaxDays,
             condition: data.rentalCondition,

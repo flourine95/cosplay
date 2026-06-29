@@ -1,38 +1,40 @@
 "use client"
 
 import { useState } from "react"
-import { format, differenceInDays } from "date-fns"
+import { differenceInDays, format } from "date-fns"
 import {
-  Calendar as CalendarIcon,
-  Info,
-  ShieldCheck,
   AlertTriangle,
-  ChevronRight,
-  Star,
-  Package,
-  Clock,
+  Calendar as CalendarIcon,
   CheckCircle,
+  ChevronRight,
+  Clock,
+  Info,
   MessageCircle,
+  Package,
+  ShieldCheck,
+  Star,
 } from "lucide-react"
-import { DateRange } from "react-day-picker"
+import type { DateRange } from "react-day-picker"
+import Image from "next/image"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { Navbar } from "@/components/home/navbar"
+import { Textarea } from "@/components/ui/textarea"
 import { Footer } from "@/components/home/footer"
-import Link from "next/link"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { Navbar } from "@/components/home/navbar"
 
 export interface SerializedRentalItem {
   id: number
@@ -40,6 +42,8 @@ export interface SerializedRentalItem {
   productSlug: string
   pricePerDay: number
   depositAmount: number
+  minDays: number
+  maxDays: number | null
   condition: string
   product: {
     name: string
@@ -55,19 +59,31 @@ export interface RentalBookingProps {
 }
 
 const policies = [
-  { Icon: Package, text: "Giao hàng toàn quốc qua đơn vị vận chuyển uy tín" },
-  { Icon: Clock, text: "Nhận đồ trước ngày thuê ít nhất 1 ngày" },
-  { Icon: CheckCircle, text: "Trả đồ trong 24h sau ngày kết thúc" },
-  { Icon: ShieldCheck, text: "Cọc hoàn trả 100% khi đồ nguyên vẹn, trong 24h" },
+  { Icon: Package, text: "Giao hang toan quoc qua don vi van chuyen uy tin" },
+  { Icon: Clock, text: "Nhan do truoc ngay thue it nhat 1 ngay" },
+  { Icon: CheckCircle, text: "Tra do trong 24h sau ngay ket thuc" },
+  {
+    Icon: ShieldCheck,
+    text: "Admin giu coc va hoan sau khi shop xac nhan do nguyen ven",
+  },
 ]
 
 export function RentalBooking({
-  rentalItem,
   existingBookings,
+  rentalItem,
 }: RentalBookingProps) {
   const [date, setDate] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
+  })
+  const [shipping, setShipping] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    city: "",
+    district: "",
+    ward: "",
+    note: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
@@ -78,51 +94,90 @@ export function RentalBooking({
     return 0
   })()
 
-  const PRICE_PER_DAY = rentalItem.pricePerDay
-  const SECURITY_DEPOSIT = rentalItem.depositAmount
-
-  const totalRentalFee = rentalDays * PRICE_PER_DAY
-  const totalPayment = totalRentalFee + SECURITY_DEPOSIT
-  const canBook = !!(date?.from && date?.to)
+  const totalRentalFee = rentalDays * rentalItem.pricePerDay
+  const totalPayment = totalRentalFee + rentalItem.depositAmount
+  const isWithinMinDays = rentalDays === 0 || rentalDays >= rentalItem.minDays
+  const isWithinMaxDays =
+    rentalDays === 0 || !rentalItem.maxDays || rentalDays <= rentalItem.maxDays
+  const hasShippingAddress = Boolean(
+    shipping.name.trim() &&
+    shipping.phone.trim() &&
+    shipping.address.trim() &&
+    shipping.city.trim() &&
+    shipping.district.trim() &&
+    shipping.ward.trim()
+  )
+  const canBook = Boolean(
+    date?.from &&
+    date?.to &&
+    isWithinMinDays &&
+    isWithinMaxDays &&
+    hasShippingAddress
+  )
 
   const disabledRanges = [
-    { before: new Date() }, // disable past dates
-    ...existingBookings.map((b) => ({
-      from: new Date(b.from),
-      to: new Date(b.to),
+    { before: new Date() },
+    ...existingBookings.map((booking) => ({
+      from: new Date(booking.from),
+      to: new Date(booking.to),
     })),
   ]
 
-  const handleBook = async () => {
+  const updateShipping = (field: keyof typeof shipping, value: string) => {
+    setShipping((current) => ({ ...current, [field]: value }))
+  }
+
+  async function handleBook() {
     if (!date?.from || !date?.to) return
+
+    if (!isWithinMinDays) {
+      toast.error(`Thoi gian thue toi thieu la ${rentalItem.minDays} ngay`)
+      return
+    }
+
+    if (!isWithinMaxDays && rentalItem.maxDays) {
+      toast.error(`Thoi gian thue toi da la ${rentalItem.maxDays} ngay`)
+      return
+    }
+
+    if (!hasShippingAddress) {
+      toast.error("Vui long nhap day du dia chi giao hang")
+      return
+    }
 
     try {
       setIsSubmitting(true)
-      const res = await fetch("/api/rental/bookings", {
+      const response = await fetch("/api/rental/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rentalItemId: rentalItem.id,
           startDate: date.from.toISOString(),
           endDate: date.to.toISOString(),
+          shippingName: shipping.name,
+          shippingPhone: shipping.phone,
+          shippingAddress: shipping.address,
+          shippingCity: shipping.city,
+          shippingDistrict: shipping.district,
+          shippingWard: shipping.ward,
+          shippingNote: shipping.note,
         }),
       })
+      const data = await response.json()
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          toast.error("Vui lòng đăng nhập để thực hiện đặt thuê")
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Vui long dang nhap de dat thue")
           router.push(`/login?redirect=/rental/${rentalItem.id}`)
           return
         }
-        throw new Error(data.error || "Không thể thực hiện đặt thuê đồ")
+        throw new Error(data.error || "Khong the dat thue do")
       }
 
-      toast.success("Đặt lịch thuê cosplay thành công!")
+      toast.success("Dat lich thue cosplay thanh cong")
       router.push(`/rental/management?orderId=${data.order.id}`)
-    } catch (err) {
-      toast.error((err as Error).message || "Đã xảy ra lỗi")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Da xay ra loi")
     } finally {
       setIsSubmitting(false)
     }
@@ -136,17 +191,17 @@ export function RentalBooking({
         <div className="mx-auto max-w-6xl px-4 py-4 md:px-6">
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Link href="/" className="transition-colors hover:text-foreground">
-              Trang chủ
+              Trang chu
             </Link>
             <ChevronRight className="h-3 w-3" />
             <Link
               href="/products"
               className="transition-colors hover:text-foreground"
             >
-              Sản phẩm
+              San pham
             </Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="font-medium text-foreground">Đặt lịch thuê</span>
+            <span className="font-medium text-foreground">Dat lich thue</span>
           </div>
         </div>
       </div>
@@ -154,7 +209,6 @@ export function RentalBooking({
       <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
           <div className="space-y-6 lg:col-span-3">
-            {/* Thông tin sản phẩm */}
             <Card className="overflow-hidden border-border/60 shadow-sm">
               <div className="flex gap-4 p-4">
                 <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
@@ -167,36 +221,40 @@ export function RentalBooking({
                 </div>
                 <div className="min-w-0 flex-1">
                   <Badge className="mb-2 border-0 bg-primary/10 text-xs text-primary">
-                    Thuê đồ
+                    Thue do
                   </Badge>
                   <h1 className="text-lg leading-tight font-extrabold tracking-tight">
                     {rentalItem.product.name}
                   </h1>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    Tình trạng đồ: {rentalItem.condition}
+                    Tinh trang do: {rentalItem.condition}
                   </p>
                   <div className="mt-1.5 flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((s) => (
+                    {[1, 2, 3, 4, 5].map((star) => (
                       <Star
-                        key={s}
-                        className={`h-3.5 w-3.5 ${s <= 4 ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
+                        key={star}
+                        className={`h-3.5 w-3.5 ${
+                          star <= 4
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-muted-foreground"
+                        }`}
                       />
                     ))}
                     <span className="ml-1 text-xs text-muted-foreground">
-                      (24 đánh giá)
+                      (24 danh gia)
                     </span>
                   </div>
                   <div className="mt-2 flex items-baseline gap-1">
                     <span className="text-xl font-extrabold text-primary">
-                      {PRICE_PER_DAY.toLocaleString()} đ
+                      {rentalItem.pricePerDay.toLocaleString()} d
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      / ngày
+                      / ngay
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Shop:{" "}
-                    <span className="cursor-pointer font-medium text-primary hover:underline">
+                    <span className="font-medium text-primary">
                       {rentalItem.product.shopName}
                     </span>
                   </p>
@@ -204,15 +262,14 @@ export function RentalBooking({
               </div>
             </Card>
 
-            {/* Lịch */}
             <Card className="border-t-4 border-border/60 border-t-primary shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <CalendarIcon className="h-5 w-5 text-primary" />
-                  Chọn ngày thuê
+                  Chon ngay thue
                 </CardTitle>
                 <CardDescription>
-                  Ngày bôi xám đã được khách khác đặt hoặc shop đang bảo trì.
+                  Ngay bi khoa da co khach khac dat hoac shop dang bao tri.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center pb-6">
@@ -231,29 +288,96 @@ export function RentalBooking({
                 <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <div className="size-3 rounded-sm bg-primary" />
-                    <span>Ngày bạn chọn</span>
+                    <span>Ngay ban chon</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="size-3 rounded-sm border border-border bg-muted" />
-                    <span>Ngày đã có người thuê</span>
+                    <span>Ngay da co nguoi thue</span>
                   </div>
                 </div>
               </CardFooter>
             </Card>
 
-            {/* Chính sách */}
+            <Card className="border-border/60 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Dia chi giao hang</CardTitle>
+                <CardDescription>
+                  Shop se giao do den dia chi nay truoc ngay thue.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    value={shipping.name}
+                    onChange={(event) =>
+                      updateShipping("name", event.target.value)
+                    }
+                    placeholder="Ten nguoi nhan *"
+                  />
+                  <Input
+                    value={shipping.phone}
+                    onChange={(event) =>
+                      updateShipping("phone", event.target.value)
+                    }
+                    placeholder="So dien thoai *"
+                  />
+                </div>
+                <Input
+                  value={shipping.address}
+                  onChange={(event) =>
+                    updateShipping("address", event.target.value)
+                  }
+                  placeholder="Dia chi chi tiet *"
+                />
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Input
+                    value={shipping.city}
+                    onChange={(event) =>
+                      updateShipping("city", event.target.value)
+                    }
+                    placeholder="Tinh/Thanh pho *"
+                  />
+                  <Input
+                    value={shipping.district}
+                    onChange={(event) =>
+                      updateShipping("district", event.target.value)
+                    }
+                    placeholder="Quan/Huyen *"
+                  />
+                  <Input
+                    value={shipping.ward}
+                    onChange={(event) =>
+                      updateShipping("ward", event.target.value)
+                    }
+                    placeholder="Phuong/Xa *"
+                  />
+                </div>
+                <Textarea
+                  value={shipping.note}
+                  onChange={(event) =>
+                    updateShipping("note", event.target.value)
+                  }
+                  placeholder="Ghi chu giao hang (tuy chon)"
+                  className="min-h-20 resize-none"
+                />
+              </CardContent>
+            </Card>
+
             <Card className="border-border/60 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ShieldCheck className="h-4 w-4 text-primary" />
-                  Chính sách thuê đồ
+                  Chinh sach thue do
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {policies.map((p, i) => (
-                  <div key={i} className="flex items-center gap-3 text-sm">
-                    <p.Icon className="h-4 w-4 shrink-0 text-primary" />
-                    <span className="text-muted-foreground">{p.text}</span>
+                {policies.map((policy) => (
+                  <div
+                    key={policy.text}
+                    className="flex items-center gap-3 text-sm"
+                  >
+                    <policy.Icon className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="text-muted-foreground">{policy.text}</span>
                   </div>
                 ))}
                 <Separator />
@@ -261,14 +385,11 @@ export function RentalBooking({
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
                   <div className="text-yellow-800 dark:text-yellow-200">
                     <p className="mb-0.5 font-semibold">
-                      Chính sách xử lý vi phạm
+                      Chinh sach xu ly vi pham
                     </p>
                     <p className="text-xs">
-                      Rách, bẩn cứng đầu hoặc trả trễ bị trừ tiền cọc theo{" "}
-                      <a href="#" className="font-bold underline">
-                        Bảng quy định phạt
-                      </a>
-                      .
+                      Rach, ban nang, mat phu kien hoac tra tre se bi tru coc
+                      theo ket qua kiem tra cua shop va admin.
                     </p>
                   </div>
                 </div>
@@ -276,22 +397,21 @@ export function RentalBooking({
             </Card>
           </div>
 
-          {/* Bill sidebar */}
           <div className="lg:col-span-2">
             <Card className="sticky top-20 border-border/60 shadow-xl">
               <CardHeader className="rounded-t-xl bg-muted/20 pb-4">
-                <CardTitle className="text-base">Chi tiết thanh toán</CardTitle>
+                <CardTitle className="text-base">Chi tiet thanh toan</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 pt-5">
                 <div className="space-y-2">
                   {[
                     {
-                      label: "Ngày nhận:",
-                      value: date?.from ? format(date.from, "dd/MM/yyyy") : "—",
+                      label: "Ngay nhan:",
+                      value: date?.from ? format(date.from, "dd/MM/yyyy") : "-",
                     },
                     {
-                      label: "Ngày trả:",
-                      value: date?.to ? format(date.to, "dd/MM/yyyy") : "—",
+                      label: "Ngay tra:",
+                      value: date?.to ? format(date.to, "dd/MM/yyyy") : "-",
                     },
                   ].map((item) => (
                     <div
@@ -309,7 +429,7 @@ export function RentalBooking({
                   ))}
                   {rentalDays > 0 && (
                     <p className="text-center text-xs font-semibold text-primary">
-                      ✓ Tổng {rentalDays} ngày thuê
+                      Tong {rentalDays} ngay thue
                     </p>
                   )}
                 </div>
@@ -319,20 +439,20 @@ export function RentalBooking({
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      Tiền thuê ({PRICE_PER_DAY.toLocaleString()}đ ×{" "}
-                      {rentalDays} ngày)
+                      Tien thue ({rentalItem.pricePerDay.toLocaleString()}d x{" "}
+                      {rentalDays} ngay)
                     </span>
                     <span className="font-semibold">
-                      {totalRentalFee.toLocaleString()} đ
+                      {totalRentalFee.toLocaleString()} d
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="flex items-center gap-1 text-muted-foreground">
-                      Tiền cọc (Deposit)
-                      <Info className="h-3.5 w-3.5 cursor-help text-primary" />
+                      Tien coc
+                      <Info className="h-3.5 w-3.5 text-primary" />
                     </span>
                     <span className="font-semibold">
-                      {SECURITY_DEPOSIT.toLocaleString()} đ
+                      {rentalItem.depositAmount.toLocaleString()} d
                     </span>
                   </div>
                 </div>
@@ -340,18 +460,17 @@ export function RentalBooking({
                 <Separator />
 
                 <div className="flex items-end justify-between">
-                  <span className="font-semibold">Tổng thanh toán:</span>
+                  <span className="font-semibold">Tong thanh toan:</span>
                   <span className="text-2xl font-extrabold text-primary">
-                    {totalPayment.toLocaleString()} đ
+                    {totalPayment.toLocaleString()} d
                   </span>
                 </div>
 
                 <div className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 p-3 text-xs text-green-700 dark:border-green-900 dark:bg-green-950/20 dark:text-green-400">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
                   <p>
-                    Tiền cọc được hệ thống giữ an toàn và{" "}
-                    <strong>hoàn trả 100%</strong> trong 24h sau khi Seller xác
-                    nhận đồ nguyên vẹn.
+                    Tien coc do admin giu va chi hoan sau khi shop xac nhan do
+                    da duoc tra ve dung tinh trang.
                   </p>
                 </div>
               </CardContent>
@@ -364,10 +483,10 @@ export function RentalBooking({
                   onClick={handleBook}
                 >
                   {isSubmitting
-                    ? "Đang xử lý đặt lịch..."
+                    ? "Dang xu ly dat lich..."
                     : canBook
-                      ? `Xác nhận & Thanh toán ${totalPayment.toLocaleString()} đ`
-                      : "Vui lòng chọn ngày thuê"}
+                      ? `Xac nhan & thanh toan ${totalPayment.toLocaleString()} d`
+                      : "Chon ngay va nhap dia chi"}
                 </Button>
                 <Button
                   variant="ghost"
@@ -375,7 +494,7 @@ export function RentalBooking({
                   className="w-full gap-1.5 text-muted-foreground"
                 >
                   <MessageCircle className="h-3.5 w-3.5" />
-                  Hỏi shop trước khi đặt
+                  Hoi shop truoc khi dat
                 </Button>
               </CardFooter>
             </Card>

@@ -28,6 +28,10 @@ export type SellerProductsResponse = {
     totalStock: number
     rented: number
   }
+  profileCompletion?: {
+    isComplete: boolean
+    missingFields: string[]
+  }
 }
 
 export type SellerProductResponse = {

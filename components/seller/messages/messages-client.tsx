@@ -1,5 +1,8 @@
 "use client"
 
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Search, Send } from "lucide-react"
+import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -7,9 +10,15 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Send } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { toast } from "sonner"
+import { useLiveRefresh } from "@/hooks/use-live-refresh"
+
+type Message = {
+  id: string
+  senderId: number
+  content: string
+  isRead: boolean
+  createdAt: string
+}
 
 type Conversation = {
   id: string
@@ -20,13 +29,11 @@ type Conversation = {
   lastMessage: string
   lastMessageAt: string
   unreadCount: number
-  messages: {
-    id: string
-    senderId: number
-    content: string
-    isRead: boolean
-    createdAt: string
-  }[]
+  messages: Message[]
+}
+
+type LoadMessagesOptions = {
+  silent?: boolean
 }
 
 const formatTime = (value: string) =>
@@ -45,26 +52,39 @@ export function SellerMessagesClient() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
 
-  const loadMessages = useCallback(async () => {
-    try {
-      const response = await fetch("/api/seller/messages")
-      const json = await response.json()
-      if (!response.ok) throw new Error(json.error ?? "Không thể lấy tin nhắn")
-      setConversations(json.data)
-      setSelectedConversationId(
-        (current) => current ?? json.data[0]?.id ?? null
-      )
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  const loadMessages = useCallback(
+    async (options: LoadMessagesOptions = {}) => {
+      try {
+        const response = await fetch("/api/seller/messages")
+        const json = await response.json()
+        if (!response.ok) {
+          throw new Error(json.error ?? "Không thể lấy tin nhắn")
+        }
+        setConversations(json.data ?? [])
+        setSelectedConversationId(
+          (current) => current ?? json.data?.[0]?.id ?? null
+        )
+      } catch (error) {
+        if (!options.silent) {
+          toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void loadMessages(), 0)
     return () => window.clearTimeout(timeoutId)
   }, [loadMessages])
+
+  useLiveRefresh({
+    enabled: !isLoading && !isSending,
+    intervalMs: 3000,
+    onRefresh: () => loadMessages({ silent: true }),
+  })
 
   const filteredConversations = useMemo(
     () =>
@@ -75,6 +95,7 @@ export function SellerMessagesClient() {
       ),
     [conversations, searchQuery]
   )
+
   const selectedConversation =
     conversations.find(
       (conversation) => conversation.id === selectedConversationId
@@ -100,6 +121,7 @@ export function SellerMessagesClient() {
         )
       )
       setMessageInput("")
+      await loadMessages({ silent: true })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
     } finally {
@@ -107,18 +129,25 @@ export function SellerMessagesClient() {
     }
   }
 
-  if (isLoading)
+  if (isLoading) {
     return <Skeleton className="h-[calc(100vh-240px)] rounded-xl" />
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Tin nhắn
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Trao đổi với khách hàng về đơn hàng và yêu cầu đặt may
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Tin nhắn
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Trao đổi với khách hàng về đơn hàng, đơn thuê và đặt may.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-medium text-emerald-600">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          Đang cập nhật realtime
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
@@ -169,7 +198,7 @@ export function SellerMessagesClient() {
                           {formatTime(conversation.lastMessageAt)}
                         </span>
                       </div>
-                      <div className="mb-1 flex gap-1.5">
+                      <div className="mb-1 flex flex-wrap gap-1.5">
                         {conversation.orderId && (
                           <Badge variant="outline">
                             ORD-{conversation.orderId}
@@ -178,6 +207,11 @@ export function SellerMessagesClient() {
                         {conversation.customOrderId && (
                           <Badge variant="outline">
                             TAIL-{conversation.customOrderId}
+                          </Badge>
+                        )}
+                        {conversation.rentalOrderId && (
+                          <Badge variant="outline">
+                            RENT-{conversation.rentalOrderId}
                           </Badge>
                         )}
                       </div>
@@ -236,7 +270,9 @@ export function SellerMessagesClient() {
                       return (
                         <div
                           key={message.id}
-                          className={`flex ${isSeller ? "justify-end" : "justify-start"}`}
+                          className={`flex ${
+                            isSeller ? "justify-end" : "justify-start"
+                          }`}
                         >
                           <div
                             className={`max-w-[72%] rounded-2xl px-4 py-2.5 ${

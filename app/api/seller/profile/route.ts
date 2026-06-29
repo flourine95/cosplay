@@ -5,6 +5,16 @@ import { prisma } from "@/lib/prisma"
 const normalizeText = (value: unknown) =>
   typeof value === "string" && value.trim() ? value.trim() : null
 
+const placeholderReturnAddressValues = new Set([
+  "Chưa cập nhật",
+  "Địa chỉ shop chưa cập nhật",
+  "Chua cap nhat",
+  "Dia chi shop chua cap nhat",
+])
+
+const isPlaceholderValue = (value: string | null) =>
+  value ? placeholderReturnAddressValues.has(value) : false
+
 const sellerProfileSelect = {
   id: true,
   name: true,
@@ -15,6 +25,13 @@ const sellerProfileSelect = {
   shopDescription: true,
   shopLogo: true,
   shopBanner: true,
+  shopReturnName: true,
+  shopReturnPhone: true,
+  shopReturnAddress: true,
+  shopReturnCity: true,
+  shopReturnDistrict: true,
+  shopReturnWard: true,
+  shopReturnNote: true,
   businessLicense: true,
   taxCode: true,
   bankName: true,
@@ -31,7 +48,7 @@ export async function GET() {
     const seller = await requireSeller()
     if (!seller) {
       return NextResponse.json(
-        { error: "Khong co quyen truy cap" },
+        { error: "Không có quyền truy cập" },
         { status: 403 }
       )
     }
@@ -45,7 +62,7 @@ export async function GET() {
   } catch (error) {
     console.error("GET /api/seller/profile error:", error)
     return NextResponse.json(
-      { error: "Khong the lay ho so seller" },
+      { error: "Không thể lấy hồ sơ seller" },
       { status: 500 }
     )
   }
@@ -56,7 +73,7 @@ export async function PATCH(request: Request) {
     const seller = await requireSeller()
     if (!seller) {
       return NextResponse.json(
-        { error: "Khong co quyen truy cap" },
+        { error: "Không có quyền truy cập" },
         { status: 403 }
       )
     }
@@ -64,10 +81,47 @@ export async function PATCH(request: Request) {
     const body = await request.json()
     const name = normalizeText(body.name)
     const shopName = normalizeText(body.shopName)
+    const shopReturnName = normalizeText(body.shopReturnName)
+    const shopReturnPhone = normalizeText(body.shopReturnPhone)
+    const shopReturnAddress = normalizeText(body.shopReturnAddress)
+    const shopReturnCity = normalizeText(body.shopReturnCity)
+    const shopReturnDistrict = normalizeText(body.shopReturnDistrict)
+    const shopReturnWard = normalizeText(body.shopReturnWard)
 
     if (!name || !shopName) {
       return NextResponse.json(
-        { error: "Ten nguoi dai dien va ten shop la bat buoc" },
+        { error: "Tên người đại diện và tên shop là bắt buộc" },
+        { status: 400 }
+      )
+    }
+
+    const rentalItemCount = await prisma.rentalItem.count({
+      where: { sellerId: seller.id },
+    })
+    const hasUsableReturnAddress =
+      Boolean(
+        shopReturnName &&
+        shopReturnPhone &&
+        shopReturnAddress &&
+        shopReturnCity &&
+        shopReturnDistrict &&
+        shopReturnWard
+      ) &&
+      ![
+        shopReturnName,
+        shopReturnPhone,
+        shopReturnAddress,
+        shopReturnCity,
+        shopReturnDistrict,
+        shopReturnWard,
+      ].some(isPlaceholderValue)
+
+    if (rentalItemCount > 0 && !hasUsableReturnAddress) {
+      return NextResponse.json(
+        {
+          error:
+            "Seller có đồ cho thuê phải cập nhật đầy đủ địa chỉ nhận đồ trả về",
+        },
         { status: 400 }
       )
     }
@@ -82,6 +136,13 @@ export async function PATCH(request: Request) {
         shopDescription: normalizeText(body.shopDescription),
         shopLogo: normalizeText(body.shopLogo),
         shopBanner: normalizeText(body.shopBanner),
+        shopReturnName,
+        shopReturnPhone,
+        shopReturnAddress,
+        shopReturnCity,
+        shopReturnDistrict,
+        shopReturnWard,
+        shopReturnNote: normalizeText(body.shopReturnNote),
         businessLicense: normalizeText(body.businessLicense),
         taxCode: normalizeText(body.taxCode),
         bankName: normalizeText(body.bankName),
@@ -95,7 +156,7 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error("PATCH /api/seller/profile error:", error)
     return NextResponse.json(
-      { error: "Khong the cap nhat ho so seller" },
+      { error: "Không thể cập nhật hồ sơ seller" },
       { status: 500 }
     )
   }

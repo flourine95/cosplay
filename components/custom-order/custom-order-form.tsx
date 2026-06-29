@@ -91,6 +91,25 @@ const measurements = [
   { label: "Dài quần", unit: "cm", placeholder: "100" },
 ]
 
+const measurementKeys = [
+  "height",
+  "weight",
+  "chest",
+  "waist",
+  "hips",
+  "shoulder",
+  "armLength",
+  "legLength",
+] as const
+
+type MeasurementKey = (typeof measurementKeys)[number]
+type MeasurementValues = Record<MeasurementKey, string>
+
+const emptyMeasurementValues = measurementKeys.reduce((acc, key) => {
+  acc[key] = ""
+  return acc
+}, {} as MeasurementValues)
+
 type FormErrors = {
   projectName?: string
   details?: string
@@ -113,6 +132,9 @@ export function CustomOrderForm() {
   const [category, setCategory] = useState("")
   const [budget, setBudget] = useState("")
   const [details, setDetails] = useState("")
+  const [measurementValues, setMeasurementValues] = useState<MeasurementValues>(
+    emptyMeasurementValues
+  )
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -157,6 +179,11 @@ export function CustomOrderForm() {
           deadline: date?.toISOString(),
           estimatedPrice: budget ? Number(budget) : undefined,
           referenceImages,
+          measurement: Object.fromEntries(
+            Object.entries(measurementValues)
+              .filter(([, value]) => value.trim())
+              .map(([key, value]) => [key, Number(value)])
+          ),
         }),
       })
       const json = await response.json()
@@ -186,7 +213,13 @@ export function CustomOrderForm() {
   }
 
   const hasFormData = () => {
-    return projectName || details || budget || uploadedFiles.length > 0
+    return (
+      projectName ||
+      details ||
+      budget ||
+      uploadedFiles.length > 0 ||
+      Object.values(measurementValues).some((value) => value.trim())
+    )
   }
 
   const handleCancel = () => {
@@ -227,6 +260,12 @@ export function CustomOrderForm() {
       if (parsed.budget) setBudget(parsed.budget)
       if (parsed.details) setDetails(parsed.details)
       if (parsed.date) setDate(new Date(parsed.date))
+      if (parsed.measurementValues) {
+        setMeasurementValues({
+          ...emptyMeasurementValues,
+          ...parsed.measurementValues,
+        })
+      }
     } catch (e) {
       console.error("Failed to load draft:", e)
     }
@@ -241,6 +280,7 @@ export function CustomOrderForm() {
           category,
           budget,
           details,
+          measurementValues,
           date: date?.toISOString(),
         }
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
@@ -249,7 +289,7 @@ export function CustomOrderForm() {
       }
     }, 3000)
     return () => clearTimeout(timer)
-  }, [projectName, category, budget, details, date])
+  }, [projectName, category, budget, details, measurementValues, date])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -681,23 +721,34 @@ export function CustomOrderForm() {
                     </Link>
                   </div>
                   <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-4 md:grid-cols-4">
-                    {measurements.map((m) => (
-                      <div key={m.label} className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">
-                          {m.label}
-                        </Label>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            placeholder={m.placeholder}
-                            className="h-8 text-sm"
-                          />
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {m.unit}
-                          </span>
+                    {measurements.map((m, index) => {
+                      const measurementKey = measurementKeys[index]!
+
+                      return (
+                        <div key={m.label} className="space-y-1">
+                          <Label className="text-xs font-medium text-muted-foreground">
+                            {m.label}
+                          </Label>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              placeholder={m.placeholder}
+                              value={measurementValues[measurementKey]}
+                              onChange={(event) =>
+                                setMeasurementValues((current) => ({
+                                  ...current,
+                                  [measurementKey]: event.target.value,
+                                }))
+                              }
+                              className="h-8 text-sm"
+                            />
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {m.unit}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
