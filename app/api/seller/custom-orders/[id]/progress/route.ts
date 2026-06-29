@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
-import { CustomOrderStatus } from "@/app/generated/prisma/enums"
+import {
+  CustomOrderStatus,
+  NotificationType,
+} from "@/app/generated/prisma/enums"
 import { requireSeller } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import {
@@ -20,6 +23,7 @@ const invalidIdResponse = () =>
   NextResponse.json({ error: "Mã đơn đặt may không hợp lệ" }, { status: 400 })
 
 const progressableStatuses: CustomOrderStatus[] = [
+  CustomOrderStatus.QUOTE_ACCEPTED,
   CustomOrderStatus.DEPOSIT_PAID,
   CustomOrderStatus.IN_PROGRESS,
   CustomOrderStatus.REVISION_REQUESTED,
@@ -53,7 +57,13 @@ export async function POST(
 
     const existing = await prisma.customOrder.findUnique({
       where: { id: customOrderId },
-      select: { id: true, sellerId: true, status: true },
+      select: {
+        id: true,
+        userId: true,
+        sellerId: true,
+        status: true,
+        orderNumber: true,
+      },
     })
 
     if (!existing || existing.sellerId !== seller.id) {
@@ -93,6 +103,20 @@ export async function POST(
         where: { id: customOrderId },
         data: {
           status: nextStatus,
+        },
+      })
+
+      await tx.notification.create({
+        data: {
+          userId: existing.userId,
+          type: NotificationType.CUSTOM_ORDER,
+          title: "Seller đã cập nhật tiến độ",
+          content: `${data.title} - ${data.progressPercent}% cho đơn ${existing.orderNumber}.`,
+          link: `/custom-order/${existing.id}`,
+          data: {
+            customOrderId: existing.id,
+            progressPercent: data.progressPercent,
+          },
         },
       })
 

@@ -80,7 +80,16 @@ function LoginContent() {
       return
     }
 
-    router.push(redirect)
+    const { user } = useAuth.getState()
+    const target = redirectParam
+      ? redirect
+      : user?.role === "ADMIN"
+        ? "/admin"
+        : user?.role === "SELLER"
+          ? "/seller"
+          : redirect
+
+    router.push(target)
     router.refresh()
   }
 

@@ -49,7 +49,12 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, publishedAt: true },
+      select: {
+        id: true,
+        publishedAt: true,
+        images: { select: { id: true }, take: 1 },
+        variants: { select: { stock: true } },
+      },
     })
 
     if (!product) {
@@ -57,6 +62,25 @@ export async function PATCH(request: Request, context: RouteContext) {
         { error: "Không tìm thấy sản phẩm" },
         { status: 404 }
       )
+    }
+
+    if (parsed.data.status === ProductStatus.ACTIVE) {
+      const totalStock = product.variants.reduce(
+        (sum, variant) => sum + variant.stock,
+        0
+      )
+      if (product.images.length === 0) {
+        return NextResponse.json(
+          { error: "Không thể duyệt sản phẩm chưa có ảnh" },
+          { status: 400 }
+        )
+      }
+      if (product.variants.length === 0 || totalStock <= 0) {
+        return NextResponse.json(
+          { error: "Không thể duyệt sản phẩm chưa có tồn kho" },
+          { status: 400 }
+        )
+      }
     }
 
     const updated = await prisma.product.update({

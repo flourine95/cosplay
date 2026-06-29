@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { formatCurrency } from "@/lib/format"
-import { slugify } from "@/lib/slug"
 import { cn } from "@/lib/utils"
 import type { SellerProductFormValues } from "@/schemas/seller-product"
 import { sellerProductSchema } from "@/schemas/seller-product"
@@ -43,11 +42,66 @@ import type {
   SellerProductResponse,
 } from "./product-types"
 
+type SellerProfileForProductGate = {
+  name: string | null
+  phone: string | null
+  shopName: string | null
+  shopDescription: string | null
+  shopReturnName: string | null
+  shopReturnPhone: string | null
+  shopReturnAddress: string | null
+  shopReturnCity: string | null
+  shopReturnDistrict: string | null
+  shopReturnWard: string | null
+  businessLicense: string | null
+  taxCode: string | null
+  bankName: string | null
+  bankAccount: string | null
+  bankAccountName: string | null
+}
+
+const placeholderProfileValues = new Set([
+  "Chưa cập nhật",
+  "Địa chỉ shop chưa cập nhật",
+  "Chua cap nhat",
+  "Dia chi shop chua cap nhat",
+])
+
+const requiredProfileFields: Array<{
+  key: keyof SellerProfileForProductGate
+  label: string
+}> = [
+  { key: "name", label: "Tên người đại diện" },
+  { key: "phone", label: "Số điện thoại" },
+  { key: "shopName", label: "Tên shop" },
+  { key: "shopDescription", label: "Mô tả shop" },
+  { key: "shopReturnName", label: "Tên người nhận đồ trả về" },
+  { key: "shopReturnPhone", label: "Số điện thoại nhận đồ trả về" },
+  { key: "shopReturnAddress", label: "Địa chỉ nhận đồ trả về" },
+  { key: "shopReturnCity", label: "Tỉnh/Thành phố nhận đồ trả về" },
+  { key: "shopReturnDistrict", label: "Quận/Huyện nhận đồ trả về" },
+  { key: "shopReturnWard", label: "Phường/Xã nhận đồ trả về" },
+  { key: "businessLicense", label: "Giấy phép kinh doanh" },
+  { key: "taxCode", label: "Mã số thuế" },
+  { key: "bankName", label: "Ngân hàng" },
+  { key: "bankAccount", label: "Số tài khoản" },
+  { key: "bankAccountName", label: "Tên chủ tài khoản" },
+]
+
+const getMissingProfileFields = (profile: SellerProfileForProductGate) =>
+  requiredProfileFields
+    .filter((field) => {
+      const value = profile[field.key]?.trim()
+      return !value || placeholderProfileValues.has(value)
+    })
+    .map((field) => field.label)
+
 export function SellerProductForm({ productId }: { productId?: number }) {
   const router = useRouter()
   const [categories, setCategories] = useState<SellerProductCategory[]>([])
-  const [isLoading, setIsLoading] = useState(Boolean(productId))
+  const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
+  const [missingProfileFields, setMissingProfileFields] = useState<string[]>([])
 
   const form = useForm<SellerProductFormValues>({
     resolver: zodResolver(sellerProductSchema),
@@ -71,12 +125,7 @@ export function SellerProductForm({ productId }: { productId?: number }) {
   const imageUrls = useWatch({ control, name: "imageUrls" }) ?? []
   const watchedName = useWatch({ control, name: "name" })
   const watchedPrice = useWatch({ control, name: "price" })
-  const watchedRentalDeposit = useWatch({
-    control,
-    name: "rentalDepositAmount",
-  })
   const watchedRentalPrice = useWatch({ control, name: "rentalPricePerDay" })
-  const watchedSlug = useWatch({ control, name: "slug" })
   const watchedType = useWatch({ control, name: "type" })
   const variants = useWatch({ control, name: "variants" }) ?? []
   const hasRental =
@@ -95,6 +144,7 @@ export function SellerProductForm({ productId }: { productId?: number }) {
           fetch("/api/seller/categories"),
           productId ? fetch(`/api/seller/products/${productId}`) : null,
         ])
+        const profileResponse = await fetch("/api/seller/profile")
 
         const categoriesJson = await categoriesResponse.json()
         if (!categoriesResponse.ok) {
@@ -106,6 +156,18 @@ export function SellerProductForm({ productId }: { productId?: number }) {
           if (!productId && categoriesJson.data[0]) {
             setValue("categoryId", categoriesJson.data[0].id)
           }
+        }
+
+        const profileJson = await profileResponse.json()
+        if (!profileResponse.ok) {
+          throw new Error(profileJson.error ?? "Không thể lấy hồ sơ seller")
+        }
+        if (!ignore) {
+          setMissingProfileFields(
+            getMissingProfileFields(
+              profileJson.data as SellerProfileForProductGate
+            )
+          )
         }
 
         if (productResponse) {
@@ -131,12 +193,6 @@ export function SellerProductForm({ productId }: { productId?: number }) {
       ignore = true
     }
   }, [productId, reset, setValue])
-
-  useEffect(() => {
-    if (!productId && watchedName && !watchedSlug) {
-      setValue("slug", slugify(watchedName), { shouldValidate: true })
-    }
-  }, [productId, setValue, watchedName, watchedSlug])
 
   async function handleUploadImages(files: FileList | null) {
     if (!files?.length) return
@@ -173,21 +229,37 @@ export function SellerProductForm({ productId }: { productId?: number }) {
   }
 
   async function handleValidSubmit(values: SellerProductFormValues) {
-    const payload = normalizeProductPayload(values)
-    const response = await fetch(
-      productId ? `/api/seller/products/${productId}` : "/api/seller/products",
-      {
-        method: productId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }
-    )
-    const json = await response.json()
-    if (!response.ok) throw new Error(json.error ?? "Không thể lưu sản phẩm")
+    if (missingProfileFields.length > 0) {
+      toast.error("Vui lòng cập nhật đầy đủ hồ sơ seller trước khi đăng bán")
+      return
+    }
 
-    toast.success(productId ? "Đã cập nhật sản phẩm" : "Đã tạo sản phẩm")
-    router.push(sellerProductRoutes.list)
-    router.refresh()
+    try {
+      const payload = normalizeProductPayload(values)
+      const response = await fetch(
+        productId
+          ? `/api/seller/products/${productId}`
+          : "/api/seller/products",
+        {
+          method: productId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      )
+      const json = await response.json()
+      if (!response.ok) {
+        toast.error(json.error ?? "Không thể lưu sản phẩm")
+        return
+      }
+
+      toast.success(productId ? "Đã cập nhật sản phẩm" : "Đã tạo sản phẩm")
+      router.push(sellerProductRoutes.list)
+      router.refresh()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể lưu sản phẩm"
+      )
+    }
   }
 
   if (isLoading) {
@@ -221,6 +293,27 @@ export function SellerProductForm({ productId }: { productId?: number }) {
           </p>
         </div>
       </div>
+
+      {missingProfileFields.length > 0 && (
+        <Card className="mb-6 border-amber-300 bg-amber-50 text-amber-950">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-semibold">
+                  Cần cập nhật đầy đủ hồ sơ seller trước khi đăng bán.
+                </p>
+                <p className="mt-1 text-sm">
+                  Còn thiếu: {missingProfileFields.join(", ")}.
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" className="shrink-0 bg-white">
+              <Link href="/seller/profile">Cập nhật hồ sơ</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
         <div className="flex flex-col gap-6">
@@ -271,7 +364,11 @@ export function SellerProductForm({ productId }: { productId?: number }) {
               title="Cấu hình cho thuê"
               description="Cọc, số ngày thuê và phụ kiện giúp giảm tranh chấp khi nhận trả đồ."
             >
-              <ProductRentalFields errors={errors} register={register} />
+              <ProductRentalFields
+                depositPreview={pricePreview}
+                errors={errors}
+                register={register}
+              />
             </ProductFormCard>
           )}
         </div>
@@ -293,11 +390,7 @@ export function SellerProductForm({ productId }: { productId?: number }) {
             hasName={Boolean(watchedName?.trim())}
             hasPrice={price > 0}
             hasRental={hasRental}
-            hasRentalConfig={
-              !hasRental ||
-              (Number(watchedRentalPrice || 0) > 0 &&
-                Number(watchedRentalDeposit || 0) > 0)
-            }
+            hasRentalConfig={!hasRental || Number(watchedRentalPrice || 0) > 0}
             hasStock={variants.some((variant) => Number(variant.stock) > 0)}
           />
         </aside>
@@ -308,7 +401,12 @@ export function SellerProductForm({ productId }: { productId?: number }) {
           <Button type="button" variant="outline" asChild>
             <Link href={sellerProductRoutes.list}>Hủy bỏ</Link>
           </Button>
-          <Button type="submit" disabled={isSubmitting || isUploading}>
+          <Button
+            type="submit"
+            disabled={
+              isSubmitting || isUploading || missingProfileFields.length > 0
+            }
+          >
             {isSubmitting ? <Spinner /> : <Save data-icon="inline-start" />}
             {submitLabel}
           </Button>

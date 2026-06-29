@@ -1,10 +1,10 @@
 import { ProductStatus, ProductType } from "@/app/generated/prisma/enums"
 
 export const productStatusLabels: Record<ProductStatus, string> = {
-  [ProductStatus.DRAFT]: "Nháp",
-  [ProductStatus.ACTIVE]: "Hoạt động",
+  [ProductStatus.DRAFT]: "Chờ duyệt",
+  [ProductStatus.ACTIVE]: "Đã duyệt",
   [ProductStatus.OUT_OF_STOCK]: "Hết hàng",
-  [ProductStatus.DISCONTINUED]: "Ngừng kinh doanh",
+  [ProductStatus.DISCONTINUED]: "Từ chối/Ẩn",
 }
 
 export const productTypeLabels: Record<ProductType, string> = {

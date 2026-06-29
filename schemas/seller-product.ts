@@ -30,12 +30,7 @@ const variantSchema = z.object({
 export const sellerProductSchema = z
   .object({
     name: z.string().min(2, { error: "Tên sản phẩm phải có ít nhất 2 ký tự" }),
-    slug: z
-      .string()
-      .min(2, { error: "Slug phải có ít nhất 2 ký tự" })
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
-        error: "Slug chỉ gồm chữ thường, số và dấu gạch ngang",
-      }),
+    slug: z.string().optional(),
     categoryId: z.coerce
       .number({ error: "Vui lòng chọn danh mục" })
       .int({ error: "Danh mục không hợp lệ" })
@@ -86,11 +81,9 @@ export const sellerProductSchema = z
       .default(RentalItemCondition.EXCELLENT),
   })
   .refine(
-    (data) =>
-      data.type === ProductType.SALE ||
-      (data.rentalPricePerDay != null && data.rentalDepositAmount != null),
+    (data) => data.type === ProductType.SALE || data.rentalPricePerDay != null,
     {
-      message: "Sản phẩm cho thuê cần có giá thuê/ngày và tiền cọc",
+      message: "Sản phẩm cho thuê cần có giá thuê/ngày",
       path: ["rentalPricePerDay"],
     }
   )

@@ -87,7 +87,7 @@ export function OrderTable({
             </TableRow>
           ) : (
             orders.map((order) => (
-              <Fragment key={order.id}>
+              <Fragment key={`${order.source}-${order.id}`}>
                 <TableRow>
                   <TableCell className="min-w-[260px]">
                     <OrderIdentity order={order} />
@@ -200,7 +200,7 @@ function OrderRowMenu({
           </DropdownMenuItem>
           <DropdownMenuItem disabled>In hóa đơn</DropdownMenuItem>
         </DropdownMenuGroup>
-        {order.nextStatuses.length > 0 && (
+        {order.nextStatuses.length > 0 && order.source === "ORDER" && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -321,10 +321,14 @@ function OrderStatusBadge({
   label,
   status,
 }: {
-  status: OrderStatus
+  status: string
   label: string
 }) {
-  if (status === OrderStatus.CANCELLED || status === OrderStatus.REFUNDED) {
+  if (
+    status === OrderStatus.CANCELLED ||
+    status === OrderStatus.REFUNDED ||
+    status === "CANCELLED"
+  ) {
     return <Badge variant="destructive">{label}</Badge>
   }
 

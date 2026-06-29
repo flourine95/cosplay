@@ -4,10 +4,28 @@ import { ProductStatus, ProductType } from "@/app/generated/prisma/enums"
 import { requireSeller } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import {
+  getMissingSellerProductProfileFields,
+  getSellerProductProfileErrorMessage,
+} from "@/lib/seller-profile-completion"
+import {
   sellerProductInclude,
   serializeSellerProduct,
 } from "@/lib/seller-product"
+import { slugify } from "@/lib/slug"
 import { sellerProductSchema } from "@/schemas/seller-product"
+
+async function createUniqueProductSlug(name: string) {
+  const baseSlug = slugify(name) || `san-pham-${Date.now()}`
+  let slug = baseSlug
+  let suffix = 2
+
+  while (await prisma.product.findUnique({ where: { slug } })) {
+    slug = `${baseSlug}-${suffix}`
+    suffix += 1
+  }
+
+  return slug
+}
 
 export async function GET() {
   try {
@@ -32,8 +50,18 @@ export async function GET() {
       totalStock: data.reduce((sum, p) => sum + p.totalStock, 0),
       rented: data.reduce((sum, p) => sum + p.rented, 0),
     }
+    const missingProfileFields = getMissingSellerProductProfileFields(seller)
 
-    return NextResponse.json({ data: { products: data, stats } })
+    return NextResponse.json({
+      data: {
+        products: data,
+        stats,
+        profileCompletion: {
+          isComplete: missingProfileFields.length === 0,
+          missingFields: missingProfileFields,
+        },
+      },
+    })
   } catch (error) {
     console.error("GET /api/seller/products error:", error)
     return NextResponse.json(
@@ -64,6 +92,13 @@ export async function POST(request: Request) {
     }
 
     const { data } = parsed
+    const missingProfileFields = getMissingSellerProductProfileFields(seller)
+    if (missingProfileFields.length > 0) {
+      return NextResponse.json(
+        { error: getSellerProductProfileErrorMessage(missingProfileFields) },
+        { status: 400 }
+      )
+    }
 
     const category = await prisma.category.findUnique({
       where: { id: data.categoryId },
@@ -78,6 +113,8 @@ export async function POST(request: Request) {
 
     const hasRental =
       data.type === ProductType.RENTAL || data.type === ProductType.BOTH
+    const productPrice = new Prisma.Decimal(data.price)
+    const slug = await createUniqueProductSlug(data.name)
 
     // Lưu tình trạng độ mới vào tags (schema Product không có field riêng)
     const tags = data.condition
@@ -87,21 +124,21 @@ export async function POST(request: Request) {
     const product = await prisma.product.create({
       data: {
         name: data.name,
-        slug: data.slug,
+        slug,
         sellerId: seller.id,
         categoryId: data.categoryId,
         description: data.description,
         shortDescription: data.shortDescription,
-        price: new Prisma.Decimal(data.price),
+        price: productPrice,
         comparePrice:
           data.comparePrice != null
             ? new Prisma.Decimal(data.comparePrice)
             : undefined,
         sku: data.sku || undefined,
         type: data.type,
-        status: data.status,
+        status: ProductStatus.DRAFT,
         tags,
-        publishedAt: data.status === ProductStatus.ACTIVE ? new Date() : null,
+        publishedAt: null,
         images: {
           create: data.imageUrls.map((url, index) => ({
             url,
@@ -114,7 +151,7 @@ export async function POST(request: Request) {
           create: data.variants.map((variant, index) => ({
             name: variant.size,
             sku: variant.sku || undefined,
-            price: new Prisma.Decimal(data.price),
+            price: productPrice,
             stock: variant.stock,
             attributes: { size: variant.size },
             isDefault: index === 0,
@@ -125,9 +162,7 @@ export async function POST(request: Request) {
               create: {
                 sellerId: seller.id,
                 pricePerDay: new Prisma.Decimal(data.rentalPricePerDay ?? 0),
-                depositAmount: new Prisma.Decimal(
-                  data.rentalDepositAmount ?? 0
-                ),
+                depositAmount: productPrice,
                 minDays: data.rentalMinDays,
                 maxDays: data.rentalMaxDays,
                 condition: data.rentalCondition,
@@ -149,7 +184,7 @@ export async function POST(request: Request) {
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { error: "Slug, SKU sản phẩm hoặc SKU biến thể đã tồn tại" },
+        { error: "SKU sản phẩm hoặc SKU biến thể đã tồn tại" },
         { status: 409 }
       )
     }

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Plus, Search } from "lucide-react"
+import { AlertCircle, Plus, Search } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -41,6 +41,10 @@ const emptyStats: SellerProductsResponse["stats"] = {
   active: 0,
   totalStock: 0,
   rented: 0,
+}
+const emptyProfileCompletion = {
+  isComplete: true,
+  missingFields: [] as string[],
 }
 
 const statusFilters: Array<{ label: string; value: ProductStatusFilter }> = [
@@ -103,6 +107,7 @@ export function ProductListClient() {
 
   const products = data?.products ?? emptyProducts
   const stats = data?.stats ?? emptyStats
+  const profileCompletion = data?.profileCompletion ?? emptyProfileCompletion
   const normalizedQuery = query.trim().toLowerCase()
 
   const filteredProducts = useMemo(() => {
@@ -124,6 +129,11 @@ export function ProductListClient() {
   const sortedProducts = useMemo(() => {
     const result = [...filteredProducts]
     result.sort((a, b) => {
+      const statusPriority = (status: ProductStatus) =>
+        status === ProductStatus.ACTIVE ? 0 : 1
+      const statusDiff = statusPriority(a.status) - statusPriority(b.status)
+      if (statusDiff !== 0) return statusDiff
+
       const direction = sortDirection === "asc" ? 1 : -1
       if (sortField === "stock") {
         return (a.totalStock - b.totalStock) * direction
@@ -183,6 +193,27 @@ export function ProductListClient() {
     <div className="flex flex-col gap-6">
       <ProductStats products={products} stats={stats} />
 
+      {!profileCompletion.isComplete && (
+        <Card className="border-amber-300 bg-amber-50 text-amber-950">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-semibold">
+                  Cần cập nhật đầy đủ hồ sơ seller trước khi đăng bán.
+                </p>
+                <p className="mt-1 text-sm">
+                  Còn thiếu: {profileCompletion.missingFields.join(", ")}.
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" className="shrink-0 bg-white">
+              <Link href="/seller/profile">Cập nhật hồ sơ</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-border/80 bg-card">
         <CardHeader>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -192,12 +223,23 @@ export function ProductListClient() {
                 Theo dõi ảnh, tồn kho, mô hình bán/thuê và listing cần xử lý.
               </CardDescription>
             </div>
-            <Button asChild>
-              <Link href={sellerProductRoutes.new}>
+            {profileCompletion.isComplete ? (
+              <Button asChild>
+                <Link href={sellerProductRoutes.new}>
+                  <Plus data-icon="inline-start" />
+                  Thêm sản phẩm
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                disabled
+                title="Cập nhật hồ sơ seller trước khi thêm sản phẩm"
+              >
                 <Plus data-icon="inline-start" />
                 Thêm sản phẩm
-              </Link>
-            </Button>
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

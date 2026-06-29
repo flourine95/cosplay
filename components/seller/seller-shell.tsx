@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Bell, Menu } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { Bell, LogOut, Menu } from "lucide-react"
 import { useState } from "react"
 import { sellerNavItems } from "./seller-nav"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useAuth } from "@/stores/auth-store"
 
 // NavLinks component extracted outside to avoid creating during render
 function NavLinks({
@@ -53,7 +54,17 @@ function NavLinks({
 
 export function SellerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { logout, user } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    await logout()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -179,13 +190,13 @@ export function SellerShell({ children }: { children: React.ReactNode }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2">
                   <Avatar className="h-7 w-7">
-                    <AvatarImage src="https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400&h=400&fit=crop" />
+                    <AvatarImage src={user?.avatar ?? undefined} />
                     <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                      S
+                      {user?.name?.charAt(0).toUpperCase() ?? "S"}
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden text-sm font-medium sm:inline-block">
-                    cosplay.vn
+                    {user?.shopName ?? user?.name ?? "Seller"}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
@@ -195,8 +206,13 @@ export function SellerShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenuItem>Thông tin cửa hàng</DropdownMenuItem>
                 <DropdownMenuItem>Cài đặt</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
-                  Đăng xuất
+                <DropdownMenuItem
+                  className="text-destructive"
+                  disabled={isLoggingOut}
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

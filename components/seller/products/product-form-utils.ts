@@ -54,10 +54,7 @@ export function toProductFormValues(
     comparePrice: product.comparePrice ?? undefined,
     sku: product.sku ?? "",
     type: product.type,
-    status:
-      product.status === ProductStatus.ACTIVE
-        ? ProductStatus.ACTIVE
-        : ProductStatus.DRAFT,
+    status: ProductStatus.DRAFT,
     tags: product.tags.filter((tag) => !tag.startsWith("condition:")),
     imageUrls: product.images,
     variants:
@@ -88,7 +85,7 @@ export function normalizeProductPayload(
     shortDescription: values.shortDescription?.trim() || undefined,
     condition: values.condition?.trim() || undefined,
     rentalPricePerDay: values.rentalPricePerDay || undefined,
-    rentalDepositAmount: values.rentalDepositAmount || undefined,
+    rentalDepositAmount: values.price || undefined,
     rentalAccessories: values.rentalAccessories?.trim() || undefined,
     rentalMaxDays: values.rentalMaxDays || undefined,
     tags: values.tags ?? [],

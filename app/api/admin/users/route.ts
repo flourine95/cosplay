@@ -134,7 +134,10 @@ export async function POST(request: Request) {
         emailVerified: data.status === UserStatus.ACTIVE,
         emailVerifiedAt: data.status === UserStatus.ACTIVE ? new Date() : null,
         sellerStatus:
-          data.role === UserRole.SELLER ? SellerStatus.PENDING : undefined,
+          data.role === UserRole.SELLER ? SellerStatus.APPROVED : undefined,
+        sellerApprovedAt:
+          data.role === UserRole.SELLER ? new Date() : undefined,
+        sellerApprovedBy: data.role === UserRole.SELLER ? admin.id : undefined,
       },
       select: {
         id: true,

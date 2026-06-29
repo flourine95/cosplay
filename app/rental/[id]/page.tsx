@@ -104,6 +104,8 @@ export default async function Page({ params }: PageProps) {
     productSlug: rentalItem.product.slug,
     pricePerDay: Number(rentalItem.pricePerDay),
     depositAmount: Number(rentalItem.depositAmount),
+    minDays: rentalItem.minDays,
+    maxDays: rentalItem.maxDays,
     condition: rentalItem.condition,
     product: {
       name: rentalItem.product.name,

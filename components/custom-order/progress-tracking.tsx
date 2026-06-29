@@ -1,42 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
+import { useParams } from "next/navigation"
+import Image from "next/image"
 import {
+  Banknote,
   CheckCircle2,
   Clock,
-  Package,
-  Send,
-  Edit3,
-  Image as ImageIcon,
-  CheckCircle,
-  Banknote,
   MessageCircle,
-  Download,
-  AlertCircle,
+  Send,
 } from "lucide-react"
+import { toast } from "sonner"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -45,94 +33,197 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { Navbar } from "@/components/home/navbar"
 import { Footer } from "@/components/home/footer"
-import { useParams } from "next/navigation"
+import { Navbar } from "@/components/home/navbar"
+import { formatCurrency } from "@/lib/format"
 
-const timelineSteps = [
-  {
-    id: 1,
-    label: "Đã xác nhận & Nhận cọc",
-    date: "15/04/2026 – 10:00",
-    desc: "Đã nhận cọc 1,000,000 đ.",
-    done: true,
-  },
-  {
-    id: 2,
-    label: "Chuẩn bị vật liệu",
-    date: "16/04/2026",
-    desc: "Maker đã chốt rập và mua đủ vải.",
-    done: true,
-  },
-  {
-    id: 3,
-    label: "Đang gia công",
-    date: "Hiện tại",
-    desc: "Đang lên form thử áo, may chi tiết phụ kiện.",
-    done: false,
-    current: true,
-  },
-  {
-    id: 4,
-    label: "Hoàn thiện & Nghiệm thu",
-    date: "Dự kiến 20/05/2026",
-    desc: "",
-    done: false,
-  },
-  {
-    id: 5,
-    label: "Thanh toán & Giao hàng",
-    date: "Sau nghiệm thu",
-    desc: "",
-    done: false,
-  },
-]
+type CustomOrder = {
+  id: number
+  orderNumber: string
+  title: string
+  description: string
+  status: string
+  statusLabel: string
+  deadline: string | null
+  finalAmount: number | null
+  estimatedPrice: number | null
+  depositAmount: number | null
+  totalPaid: number
+  shippingFee: number
+  trackingCode: string | null
+  shippingCarrier: string | null
+  remainingAmount: number
+  progressPercent: number
+  seller: { id: number; name: string; avatar: string | null }
+  quotes: {
+    id: number
+    quotedPrice: number
+    depositAmount: number
+    estimatedDays: number
+    description: string | null
+    isAccepted: boolean
+    createdAt: string
+  }[]
+  progressUpdates: {
+    id: number
+    title: string
+    description: string
+    images: string[]
+    videos: string[]
+    progressPercent: number
+    createdAt: string
+  }[]
+}
 
-const messages = [
-  {
-    id: 1,
-    sender: "seller",
-    name: "Klee Crafter Shop",
-    avatar: "KC",
-    time: "Hôm qua, 14:20",
-    text: "Mình vừa lên form thử cái áo trong, bạn xem vải này ánh kim lên ok không nhé. Tay áo mình làm rộng 20cm như bạn dặn rồi.",
-    images: ["Áo_lót_form.jpg", "Chi_tiết_vai.jpg"],
-    isWip: true,
-  },
-  {
-    id: 2,
-    sender: "buyer",
-    name: "Bạn",
-    avatar: "ME",
-    time: "Hôm qua, 16:05",
-    text: "Vải lên đẹp quá shop ơi! Chốt form này nhé. Nhưng mình muốn phần cổ áo cao thêm 1cm nữa được không?",
-    images: [],
-    isWip: false,
-  },
-  {
-    id: 3,
-    sender: "seller",
-    name: "Klee Crafter Shop",
-    avatar: "KC",
-    time: "Hôm qua, 16:30",
-    text: "Ok bạn ơi, mình sẽ điều chỉnh ngay. Dự kiến cuối tuần này sẽ có ảnh update tiếp nhé.",
-    images: [],
-    isWip: false,
-  },
-]
+type Message = {
+  id: string
+  senderId: number
+  senderName: string
+  senderAvatar: string | null
+  content: string
+  createdAt: string
+}
+
+const formatDate = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(new Date(value))
+    : "Chưa có"
 
 export function ProgressTracking() {
   const params = useParams()
-  const orderId = params.id ? `#CM-${params.id}` : "#CM-40912"
-  const [revisionText, setRevisionText] = useState("")
+  const orderId = String(params.id ?? "")
+  const [order, setOrder] = useState<CustomOrder | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [message, setMessage] = useState("")
-  const [isSending, setIsSending] = useState(false)
-  const progressPercent = 60
+  const [isLoading, setIsLoading] = useState(true)
+  const [isPending, startTransition] = useTransition()
+
+  const loadOrder = useCallback(async () => {
+    const res = await fetch(`/api/custom-orders/${orderId}`)
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error ?? "Không thể tải đơn đặt may")
+    setOrder(json.data)
+  }, [orderId])
+
+  const loadMessages = useCallback(async () => {
+    const res = await fetch(`/api/custom-orders/${orderId}/messages`)
+    const json = await res.json()
+    if (res.ok) setMessages(json.data.messages ?? [])
+  }, [orderId])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        await Promise.all([loadOrder(), loadMessages()])
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
+      } finally {
+        setIsLoading(false)
+      }
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadMessages, loadOrder])
+
+  const latestQuote = order?.quotes[0] ?? null
+  const timeline = useMemo(() => {
+    if (!order) return []
+    return [
+      {
+        title: "Gửi yêu cầu",
+        description: order.description,
+        images: [],
+        videos: [],
+        progressPercent: 0,
+        createdAt: null,
+      },
+      ...order.progressUpdates,
+    ]
+  }, [order])
+
+  const acceptQuote = (quoteId: number) => {
+    startTransition(async () => {
+      const res = await fetch(`/api/custom-orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "acceptQuote", quoteId }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json.error ?? "Không thể nhận báo giá")
+        return
+      }
+      setOrder(json.data)
+      toast.success("Đã nhận báo giá từ seller")
+    })
+  }
+
+  const runOrderAction = (
+    action: "payDeposit" | "payFinal" | "confirmReceived"
+  ) => {
+    startTransition(async () => {
+      const res = await fetch(`/api/custom-orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json.error ?? "Khong the cap nhat don dat may")
+        return
+      }
+      setOrder(json.data)
+      toast.success("Da cap nhat don dat may")
+    })
+  }
+
+  const sendMessage = () => {
+    if (!message.trim()) return
+    startTransition(async () => {
+      const res = await fetch(`/api/custom-orders/${orderId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: message.trim() }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json.error ?? "Không thể gửi tin nhắn")
+        return
+      }
+      setMessages(json.data.messages ?? [])
+      setMessage("")
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
+          <Skeleton className="h-[640px] rounded-xl" />
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="mx-auto max-w-6xl px-4 py-16 text-center">
+          Không tìm thấy đơn đặt may.
+        </div>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-
       <div className="border-b border-border/60 bg-muted/30">
         <div className="mx-auto max-w-6xl px-4 py-5 md:px-6">
           <Breadcrumb className="mb-3">
@@ -142,11 +233,13 @@ export function ProgressTracking() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/custom-order">Đặt may</BreadcrumbLink>
+                <BreadcrumbLink href="/profile/custom-orders">
+                  Đặt may của tôi
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{orderId}</BreadcrumbPage>
+                <BreadcrumbPage>{order.orderNumber}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -154,31 +247,28 @@ export function ProgressTracking() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight">
-                Theo dõi Tiến độ Gia công
+                {order.title}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Genshin Impact – Raiden Shogun Full Set • Maker:{" "}
-                <span className="font-medium text-primary">
-                  Klee Crafter Shop
-                </span>
+                Maker: <span className="font-medium">{order.seller.name}</span>
               </p>
             </div>
             <Badge variant="secondary" className="w-fit gap-1.5">
               <Clock className="h-3 w-3" />
-              Đang gia công ({progressPercent}%)
+              {order.statusLabel} ({order.progressPercent}%)
             </Badge>
           </div>
           <div className="mt-4">
             <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
               <span>Tiến độ tổng thể</span>
               <span className="font-semibold text-primary">
-                {progressPercent}%
+                {order.progressPercent}%
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${progressPercent}%` }}
+                style={{ width: `${order.progressPercent}%` }}
               />
             </div>
           </div>
@@ -187,42 +277,130 @@ export function ProgressTracking() {
 
       <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Cột trái */}
           <div className="space-y-5">
-            <Card className="border-border/60 shadow-sm">
+            <Card className="border-border/60">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Banknote className="h-4 w-4 text-primary" />
-                  Thông tin đơn hàng
+                  Thông tin báo giá
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2.5 text-sm">
-                {[
-                  { label: "Mã đơn", value: orderId, cls: "" },
-                  {
-                    label: "Ngân sách chốt",
-                    value: "2,500,000 đ",
-                    cls: "font-bold text-primary",
-                  },
-                  { label: "Đã cọc", value: "1,000,000 đ", cls: "" },
-                  {
-                    label: "Còn lại",
-                    value: "1,500,000 đ",
-                    cls: "font-semibold text-orange-600",
-                  },
-                  { label: "Deadline", value: "20/05/2026", cls: "" },
-                ].map((item) => (
-                  <div key={item.label} className="flex justify-between">
-                    <span className="text-muted-foreground">{item.label}</span>
-                    <span className={item.cls || "font-medium"}>
-                      {item.value}
-                    </span>
-                  </div>
-                ))}
+              <CardContent className="space-y-3 text-sm">
+                <Info label="Mã đơn" value={order.orderNumber} />
+                <Info
+                  label="Báo giá"
+                  value={
+                    order.finalAmount || order.estimatedPrice
+                      ? formatCurrency(
+                          order.finalAmount ?? order.estimatedPrice ?? 0
+                        )
+                      : "Chưa có"
+                  }
+                />
+                <Info
+                  label="Tiền cọc"
+                  value={
+                    order.depositAmount
+                      ? formatCurrency(order.depositAmount)
+                      : "Chưa có"
+                  }
+                />
+                <Info
+                  label="Đã thanh toán"
+                  value={formatCurrency(order.totalPaid)}
+                />
+                <Info
+                  label="Còn lại"
+                  value={formatCurrency(order.remainingAmount)}
+                />
+                {order.shippingFee > 0 && (
+                  <Info
+                    label="Phí giao hàng"
+                    value={formatCurrency(order.shippingFee)}
+                  />
+                )}
+                {order.trackingCode && (
+                  <Info
+                    label="Vận đơn"
+                    value={`${order.shippingCarrier ?? "Đơn vị VC"} - ${order.trackingCode}`}
+                  />
+                )}
+                <Info label="Deadline" value={formatDate(order.deadline)} />
+                {order.status === "QUOTE_ACCEPTED" && order.depositAmount && (
+                  <Button
+                    className="w-full"
+                    disabled={isPending}
+                    onClick={() => runOrderAction("payDeposit")}
+                  >
+                    Đặt cọc {formatCurrency(order.depositAmount)}
+                  </Button>
+                )}
+                {order.status === "READY" && order.remainingAmount > 0 && (
+                  <Button
+                    className="w-full"
+                    disabled={isPending}
+                    onClick={() => runOrderAction("payFinal")}
+                  >
+                    Thanh toán còn lại {formatCurrency(order.remainingAmount)}
+                  </Button>
+                )}
+                {order.status === "READY" &&
+                  order.trackingCode &&
+                  order.remainingAmount === 0 && (
+                    <Button
+                      className="w-full"
+                      disabled={isPending}
+                      onClick={() => runOrderAction("confirmReceived")}
+                    >
+                      Xác nhận đã nhận hàng
+                    </Button>
+                  )}
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 shadow-sm">
+            {latestQuote && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">
+                    Báo giá mới từ seller
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <Info
+                    label="Giá"
+                    value={formatCurrency(latestQuote.quotedPrice)}
+                  />
+                  <Info
+                    label="Cọc"
+                    value={formatCurrency(latestQuote.depositAmount)}
+                  />
+                  <Info
+                    label="Thời gian"
+                    value={`${latestQuote.estimatedDays} ngày`}
+                  />
+                  {latestQuote.description && (
+                    <p className="rounded-lg bg-background p-3 text-muted-foreground">
+                      {latestQuote.description}
+                    </p>
+                  )}
+                  <Button
+                    className="w-full"
+                    disabled={
+                      isPending ||
+                      latestQuote.isAccepted ||
+                      order.status !== "QUOTED"
+                    }
+                    onClick={() => acceptQuote(latestQuote.id)}
+                  >
+                    {latestQuote.isAccepted
+                      ? "Đã nhận báo giá"
+                      : "Nhận báo giá"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="border-border/60">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clock className="h-4 w-4 text-primary" />
@@ -230,93 +408,62 @@ export function ProgressTracking() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {timelineSteps.map((step, i) => (
-                  <div key={step.id} className="flex gap-3 pb-4 last:pb-0">
+                {timeline.map((step, index) => (
+                  <div
+                    key={`${step.title}-${index}`}
+                    className="flex gap-3 pb-4 last:pb-0"
+                  >
                     <div className="flex flex-col items-center">
-                      <div
-                        className={`z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
-                          step.done
-                            ? "border-green-500 bg-green-500 text-white"
-                            : step.current
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-background text-muted-foreground"
-                        }`}
-                      >
-                        {step.done ? (
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        ) : step.current ? (
-                          <Clock className="h-3.5 w-3.5" />
-                        ) : (
-                          <Package className="h-3.5 w-3.5" />
-                        )}
+                      <div className="z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-green-500 bg-green-500 text-white">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                       </div>
-                      {i < timelineSteps.length - 1 && (
+                      {index < timeline.length - 1 && (
                         <div
-                          className={`mt-1 w-px ${step.done ? "bg-green-400" : "bg-border"}`}
+                          className="mt-1 w-px bg-green-400"
                           style={{ height: 28 }}
                         />
                       )}
                     </div>
                     <div className="pt-0.5">
-                      <p
-                        className={`text-sm font-semibold ${step.current ? "text-primary" : step.done ? "text-foreground" : "text-muted-foreground"}`}
-                      >
-                        {step.label}
-                      </p>
+                      <p className="text-sm font-semibold">{step.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {step.date}
+                        {step.progressPercent}% · {formatDate(step.createdAt)}
                       </p>
-                      {step.desc && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {step.desc}
-                        </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {step.description}
+                      </p>
+                      {step.images.length > 0 && (
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          {step.images.map((imageUrl) => (
+                            <div
+                              key={imageUrl}
+                              className="relative aspect-square overflow-hidden rounded-lg border border-border/60 bg-muted"
+                            >
+                              <Image
+                                src={imageUrl}
+                                alt={step.title}
+                                fill
+                                sizes="160px"
+                                className="object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
-
-            <Card className="border-green-200 bg-green-50/60 shadow-sm dark:border-green-900 dark:bg-green-950/20">
-              <CardContent className="space-y-3 pt-5 pb-4">
-                <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-                  ✅ Nghiệm thu sản phẩm
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Khi Maker gửi ảnh hoàn thiện, bấm để xác nhận đạt yêu cầu và
-                  chuyển sang thanh toán phần còn lại.
-                </p>
-                <Button disabled className="w-full" variant="outline">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Nghiệm thu sản phẩm
-                </Button>
-                <p className="flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
-                  <AlertCircle className="h-3 w-3" />
-                  Chờ Maker gửi ảnh hoàn thiện
-                </p>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Cột phải: Chat WIP */}
           <div className="flex flex-col lg:col-span-2">
-            <Card className="flex h-[580px] flex-1 flex-col overflow-hidden border-border/60 shadow-sm">
+            <Card className="flex h-[640px] flex-1 flex-col overflow-hidden border-border/60">
               <CardHeader className="shrink-0 border-b bg-muted/20 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <MessageCircle className="h-4 w-4 text-primary" />
-                    Trao đổi & Hình ảnh tiến độ (WIP)
-                  </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    disabled={messages.length === 0}
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Tải tất cả ảnh
-                  </Button>
-                </div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                  Nhắn tin với seller
+                </CardTitle>
               </CardHeader>
 
               <CardContent className="flex-1 overflow-hidden p-0">
@@ -324,112 +471,42 @@ export function ProgressTracking() {
                   {messages.length === 0 ? (
                     <div className="flex h-full flex-col items-center justify-center py-12 text-center">
                       <MessageCircle className="mb-4 h-12 w-12 text-muted-foreground/30" />
-                      <p className="text-sm font-semibold text-foreground">
+                      <p className="text-sm font-semibold">
                         Chưa có tin nhắn nào
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Maker sẽ gửi cập nhật tiến độ và hình ảnh WIP tại đây
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      {messages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex gap-3 ${msg.sender === "buyer" ? "flex-row-reverse" : ""}`}
-                        >
-                          <Avatar className="size-9 shrink-0">
-                            <AvatarFallback
-                              className={`text-xs ${msg.sender === "buyer" ? "bg-primary text-primary-foreground" : ""}`}
-                            >
-                              {msg.avatar}
-                            </AvatarFallback>
-                          </Avatar>
+                    <div className="space-y-4">
+                      {messages.map((item) => {
+                        const isSeller = item.senderId === order.seller.id
+                        return (
                           <div
-                            className={`flex max-w-[75%] flex-col gap-2 ${msg.sender === "buyer" ? "items-end" : ""}`}
+                            key={item.id}
+                            className={`flex gap-3 ${isSeller ? "" : "flex-row-reverse"}`}
                           >
+                            <Avatar className="size-9 shrink-0">
+                              <AvatarImage
+                                src={item.senderAvatar ?? undefined}
+                              />
+                              <AvatarFallback>
+                                {item.senderName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
                             <div
-                              className={`rounded-2xl p-3 text-sm ${
-                                msg.sender === "buyer"
-                                  ? "rounded-tr-none bg-primary text-primary-foreground"
-                                  : "rounded-tl-none bg-muted"
+                              className={`max-w-[75%] rounded-2xl p-3 text-sm ${
+                                isSeller
+                                  ? "rounded-tl-none bg-muted"
+                                  : "rounded-tr-none bg-primary text-primary-foreground"
                               }`}
                             >
-                              <p
-                                className={`mb-1 text-xs font-semibold ${msg.sender === "buyer" ? "text-primary-foreground/70" : "text-muted-foreground"}`}
-                              >
-                                {msg.name} • {msg.time}
+                              <p className="mb-1 text-xs opacity-70">
+                                {item.senderName} · {formatDate(item.createdAt)}
                               </p>
-                              {msg.text}
+                              {item.content}
                             </div>
-                            {msg.images.length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {msg.images.map((img) => (
-                                  <div
-                                    key={img}
-                                    className="relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-border bg-muted transition-colors hover:border-primary/50"
-                                  >
-                                    <ImageIcon className="h-7 w-7 text-muted-foreground opacity-30" />
-                                    <span className="absolute right-0 bottom-1.5 left-0 mx-1 truncate rounded bg-background/80 px-1 text-center text-[10px] font-semibold">
-                                      {img}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {msg.isWip && msg.sender === "seller" && (
-                              <div className="flex flex-wrap gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-green-200 text-xs text-green-600 hover:bg-green-50 hover:text-green-700 dark:border-green-900 dark:text-green-400 dark:hover:bg-green-950"
-                                >
-                                  <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
-                                  Duyệt tiến độ này
-                                </Button>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-destructive/30 text-xs text-destructive hover:bg-destructive/10"
-                                    >
-                                      <Edit3 className="mr-1.5 h-3.5 w-3.5" />
-                                      Yêu cầu chỉnh sửa
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent>
-                                    <DialogHeader>
-                                      <DialogTitle>
-                                        Yêu cầu Chỉnh sửa (Revisions)
-                                      </DialogTitle>
-                                      <DialogDescription>
-                                        Ghi rõ điểm chưa ưng ý. Chỉnh sửa lớn có
-                                        thể ảnh hưởng chi phí và deadline.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    <Textarea
-                                      value={revisionText}
-                                      onChange={(e) =>
-                                        setRevisionText(e.target.value)
-                                      }
-                                      placeholder="VD: Tay áo hơi ngắn, mình muốn dài qua mu bàn tay. Phần viền cổ áo dùng kim tuyến nhạt hơn..."
-                                      className="min-h-[100px] resize-none"
-                                    />
-                                    <DialogFooter>
-                                      <Button variant="ghost">Hủy</Button>
-                                      <Button className="bg-destructive text-white hover:bg-destructive/90">
-                                        <Edit3 className="mr-1.5 h-4 w-4" />
-                                        Gửi Yêu cầu Sửa
-                                      </Button>
-                                    </DialogFooter>
-                                  </DialogContent>
-                                </Dialog>
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </ScrollArea>
@@ -439,38 +516,22 @@ export function ProgressTracking() {
               <CardFooter className="shrink-0 p-3">
                 <form
                   className="flex w-full items-center gap-2"
-                  onSubmit={async (e) => {
-                    e.preventDefault()
-                    if (message.trim()) {
-                      setIsSending(true)
-                      // Mock API call
-                      await new Promise((resolve) => setTimeout(resolve, 500))
-                      setMessage("")
-                      setIsSending(false)
-                    }
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    sendMessage()
                   }}
                 >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0"
-                    disabled={isSending}
-                  >
-                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                  </Button>
                   <Input
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Nhắn tin với Maker..."
+                    onChange={(event) => setMessage(event.target.value)}
+                    placeholder="Nhắn tin với seller..."
                     className="flex-1"
-                    disabled={isSending}
+                    disabled={isPending}
                   />
                   <Button
                     type="submit"
                     size="icon"
-                    className="shrink-0"
-                    disabled={!message.trim() || isSending}
+                    disabled={!message.trim() || isPending}
                   >
                     <Send className="h-4 w-4" />
                   </Button>
@@ -482,6 +543,15 @@ export function ProgressTracking() {
       </div>
 
       <Footer />
+    </div>
+  )
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
     </div>
   )
 }

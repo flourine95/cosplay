@@ -73,11 +73,9 @@ export const adminProductSchema = z
       .default(RentalItemCondition.EXCELLENT),
   })
   .refine(
-    (data) =>
-      data.type === ProductType.SALE ||
-      (data.rentalPricePerDay && data.rentalDepositAmount),
+    (data) => data.type === ProductType.SALE || data.rentalPricePerDay != null,
     {
-      message: "Sản phẩm cho thuê cần có giá thuê/ngày và tiền cọc",
+      message: "Sản phẩm cho thuê cần có giá thuê/ngày",
       path: ["rentalPricePerDay"],
     }
   )

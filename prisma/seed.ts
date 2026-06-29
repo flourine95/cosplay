@@ -87,6 +87,13 @@ const users = {
     sellerRating: 4.8,
     sellerTotalReviews: 156,
     sellerTotalSales: 342,
+    shopReturnName: "Cosplay Shop Premium",
+    shopReturnPhone: "0912345678",
+    shopReturnAddress: "45 Le Loi",
+    shopReturnCity: "Ho Chi Minh",
+    shopReturnDistrict: "Quan 1",
+    shopReturnWard: "Phuong Ben Nghe",
+    shopReturnNote: "Goi shop truoc khi gui tra do.",
     businessLicense: "0123456789",
     taxCode: "0123456789",
     bankName: "Vietcombank",
@@ -171,7 +178,7 @@ function getCategorySlug(category: string): string {
 
 const rentalConfig = {
   pricePerDayMultiplier: 0.05,
-  depositMultiplier: 0.3,
+  depositMultiplier: 1,
   minDays: 3,
   maxDays: 14,
   condition: RentalItemCondition.EXCELLENT,
@@ -767,15 +774,18 @@ const seedCustomOrders = async (
 }
 
 const seedConversations = async (customerId: number, sellerId: number) => {
-  const conversation = await prisma.conversation.upsert({
-    where: { user1Id_user2Id: { user1Id: customerId, user2Id: sellerId } },
-    update: {},
-    create: {
-      user1Id: customerId,
-      user2Id: sellerId,
-      lastMessageAt: new Date(),
-    },
+  const existingConversation = await prisma.conversation.findFirst({
+    where: { user1Id: customerId, user2Id: sellerId },
   })
+  const conversation =
+    existingConversation ??
+    (await prisma.conversation.create({
+      data: {
+        user1Id: customerId,
+        user2Id: sellerId,
+        lastMessageAt: new Date(),
+      },
+    }))
 
   const existingMessages = await prisma.message.count({
     where: { conversationId: conversation.id },

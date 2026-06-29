@@ -45,6 +45,12 @@ type CustomOrder = {
   statusLabel: string
   estimatedPrice: number | null
   depositAmount: number | null
+  finalAmount: number | null
+  totalPaid: number
+  shippingFee: number
+  trackingCode: string | null
+  shippingCarrier: string | null
+  remainingAmount: number
   progressPercent: number
   customer: {
     name: string
@@ -65,6 +71,8 @@ type CustomOrder = {
     id: number
     title: string
     description: string
+    images: string[]
+    videos: string[]
     progressPercent: number
     createdAt: string
   }[]
@@ -121,6 +129,15 @@ const measurementLabels: Record<string, string> = {
   notes: "Ghi chú",
 }
 
+const tailoringStages = [
+  { title: "Nhận cọc / chốt yêu cầu", progressPercent: 10 },
+  { title: "Chuẩn bị vật liệu", progressPercent: 25 },
+  { title: "Cắt rập / lên form", progressPercent: 45 },
+  { title: "May chi tiết", progressPercent: 65 },
+  { title: "Hoàn thiện phụ kiện", progressPercent: 85 },
+  { title: "Sẵn sàng giao", progressPercent: 100 },
+]
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -140,6 +157,7 @@ export function TailoringListClient() {
   const [replyText, setReplyText] = useState("")
   const [quoteOrder, setQuoteOrder] = useState<CustomOrder | null>(null)
   const [progressOrder, setProgressOrder] = useState<CustomOrder | null>(null)
+  const [shippingOrder, setShippingOrder] = useState<CustomOrder | null>(null)
   const [detailOrder, setDetailOrder] = useState<CustomOrder | null>(null)
   const [quoteForm, setQuoteForm] = useState({
     quotedPrice: "1200000",
@@ -152,6 +170,12 @@ export function TailoringListClient() {
     description: "Shop đã cập nhật tiến độ mới cho đơn đặt may.",
     progressPercent: "35",
   })
+  const [shippingForm, setShippingForm] = useState({
+    shippingCarrier: "GHTK",
+    trackingCode: "",
+    shippingFee: "35000",
+  })
+  const [progressFiles, setProgressFiles] = useState<File[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -220,6 +244,25 @@ export function TailoringListClient() {
     if (!progressOrder) return
     setIsSubmitting(true)
     try {
+      let imageUrls: string[] = []
+      if (progressFiles.length > 0) {
+        const formData = new FormData()
+        progressFiles.forEach((file) => formData.append("files", file))
+
+        const uploadResponse = await fetch(
+          "/api/seller/custom-order-progress-images",
+          {
+            method: "POST",
+            body: formData,
+          }
+        )
+        const uploadJson = await uploadResponse.json()
+        if (!uploadResponse.ok) {
+          throw new Error(uploadJson.error ?? "KhÃ´ng thá»ƒ táº£i áº£nh lÃªn")
+        }
+        imageUrls = uploadJson.data.urls ?? []
+      }
+
       const response = await fetch(
         `/api/seller/custom-orders/${progressOrder.id}/progress`,
         {
@@ -229,7 +272,7 @@ export function TailoringListClient() {
             title: progressForm.title,
             description: progressForm.description,
             progressPercent: progressForm.progressPercent,
-            images: [],
+            images: imageUrls,
             videos: [],
           }),
         }
@@ -238,9 +281,35 @@ export function TailoringListClient() {
       if (!response.ok) throw new Error(json.error ?? "Không thể cập nhật")
       toast.success("Đã cập nhật tiến độ")
       setProgressOrder(null)
+      setProgressFiles([])
       await loadOrders()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function updateShipping() {
+    if (!shippingOrder) return
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(
+        `/api/seller/custom-orders/${shippingOrder.id}/shipping`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(shippingForm),
+        }
+      )
+      const json = await response.json()
+      if (!response.ok)
+        throw new Error(json.error ?? "Khong the cap nhat giao hang")
+      toast.success("Da gui thong tin giao hang")
+      setShippingOrder(null)
+      await loadOrders()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Co loi xay ra")
     } finally {
       setIsSubmitting(false)
     }
@@ -396,6 +465,7 @@ export function TailoringListClient() {
                   )}
                   {(
                     [
+                      CustomOrderStatus.QUOTE_ACCEPTED,
                       CustomOrderStatus.DEPOSIT_PAID,
                       CustomOrderStatus.IN_PROGRESS,
                       CustomOrderStatus.REVISION_REQUESTED,
@@ -408,6 +478,7 @@ export function TailoringListClient() {
                       disabled={isSubmitting}
                       onClick={() => {
                         setProgressOrder(selectedOrder)
+                        setProgressFiles([])
                         setProgressForm({
                           title: "Cập nhật tiến độ",
                           description:
@@ -419,6 +490,29 @@ export function TailoringListClient() {
                       }}
                     >
                       Cập nhật tiến độ
+                    </Button>
+                  )}
+                  {selectedOrder.status === CustomOrderStatus.READY && (
+                    <Button
+                      size="sm"
+                      variant={
+                        selectedOrder.trackingCode ? "secondary" : "default"
+                      }
+                      disabled={isSubmitting || !!selectedOrder.trackingCode}
+                      onClick={() => {
+                        if (selectedOrder.trackingCode) return
+                        setShippingOrder(selectedOrder)
+                        setShippingForm({
+                          shippingCarrier:
+                            selectedOrder.shippingCarrier ?? "GHTK",
+                          trackingCode: selectedOrder.trackingCode ?? "",
+                          shippingFee: String(
+                            selectedOrder.shippingFee || 35000
+                          ),
+                        })
+                      }}
+                    >
+                      {selectedOrder.trackingCode ? "Đã giao" : "Giao hàng"}
                     </Button>
                   )}
                 </div>
@@ -531,6 +625,40 @@ export function TailoringListClient() {
               />
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid gap-2 sm:grid-cols-3">
+                {tailoringStages.map((stage) => {
+                  const isDone =
+                    selectedOrder.progressPercent >= stage.progressPercent
+
+                  return (
+                    <div
+                      key={stage.title}
+                      className={`rounded-lg border p-3 ${
+                        isDone
+                          ? "border-emerald-200 bg-emerald-500/5"
+                          : "border-border/60 bg-background"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2
+                          className={`h-4 w-4 ${
+                            isDone
+                              ? "text-emerald-600"
+                              : "text-muted-foreground"
+                          }`}
+                        />
+                        <span className="text-xs font-semibold">
+                          {stage.progressPercent}%
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {stage.title}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+
               {selectedOrder.quotes.length > 0 && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {selectedOrder.quotes.map((quote) => (
@@ -571,6 +699,24 @@ export function TailoringListClient() {
                       <p className="mt-1 text-xs text-muted-foreground">
                         {formatDate(progress.createdAt)}
                       </p>
+                      {progress.images.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                          {progress.images.map((imageUrl) => (
+                            <div
+                              key={imageUrl}
+                              className="relative aspect-square overflow-hidden rounded-md border border-border/60 bg-muted"
+                            >
+                              <Image
+                                src={imageUrl}
+                                alt={progress.title}
+                                fill
+                                sizes="120px"
+                                className="object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -770,7 +916,12 @@ export function TailoringListClient() {
 
       <Dialog
         open={!!progressOrder}
-        onOpenChange={(open) => !open && setProgressOrder(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProgressOrder(null)
+            setProgressFiles([])
+          }
+        }}
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -816,6 +967,33 @@ export function TailoringListClient() {
                 }
               />
             </Field>
+            <Field label="Ảnh hoàn thiện / tiến độ">
+              <Input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []).slice(0, 5)
+                  setProgressFiles(files)
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Tối đa 5 ảnh, mỗi ảnh 5MB. Ảnh này sẽ gửi cho người đặt may.
+              </p>
+              {progressFiles.length > 0 && (
+                <div className="grid grid-cols-5 gap-2">
+                  {progressFiles.map((file) => (
+                    <div
+                      key={`${file.name}-${file.lastModified}`}
+                      className="flex aspect-square items-center justify-center rounded-md border border-border/60 bg-muted text-muted-foreground"
+                      title={file.name}
+                    >
+                      <ImageIcon className="h-5 w-5" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Field>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setProgressOrder(null)}>
@@ -823,6 +1001,66 @@ export function TailoringListClient() {
             </Button>
             <Button disabled={isSubmitting} onClick={updateProgress}>
               Cập nhật
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!shippingOrder}
+        onOpenChange={(open) => !open && setShippingOrder(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Giao hàng</DialogTitle>
+            <DialogDescription>
+              Nhập thông tin vận chuyển để người đặt may thanh toán phần còn lại
+              và xác nhận nhận hàng.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Field label="Đơn vị vận chuyển">
+              <Input
+                value={shippingForm.shippingCarrier}
+                onChange={(event) =>
+                  setShippingForm((current) => ({
+                    ...current,
+                    shippingCarrier: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Mã vận đơn">
+              <Input
+                value={shippingForm.trackingCode}
+                onChange={(event) =>
+                  setShippingForm((current) => ({
+                    ...current,
+                    trackingCode: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Phí giao hàng">
+              <Input
+                type="number"
+                min={0}
+                value={shippingForm.shippingFee}
+                onChange={(event) =>
+                  setShippingForm((current) => ({
+                    ...current,
+                    shippingFee: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShippingOrder(null)}>
+              Hủy
+            </Button>
+            <Button disabled={isSubmitting} onClick={updateShipping}>
+              Gửi thông tin giao hàng
             </Button>
           </DialogFooter>
         </DialogContent>

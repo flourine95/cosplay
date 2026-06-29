@@ -1,4 +1,10 @@
 import RevenueManagement from "@/components/admin/revenue/revenue-management"
+import {
+  EscrowStatus,
+  OrderStatus,
+  PaymentStatus,
+  ReturnStatus,
+} from "@/app/generated/prisma/enums"
 import { prisma } from "@/lib/prisma"
 
 const getMonthKey = (date: Date): string =>
@@ -18,27 +24,81 @@ export default async function RevenuePage() {
     return new Date(now.getFullYear(), now.getMonth() - (3 - index), 1)
   })
 
-  const [orders, customOrders, rentalOrders] = await Promise.all([
-    prisma.order.findMany({
-      select: {
-        total: true,
-        createdAt: true,
-      },
-    }),
-    prisma.customOrder.findMany({
-      select: {
-        finalAmount: true,
-        totalPaid: true,
-        createdAt: true,
-      },
-    }),
-    prisma.rentalOrder.findMany({
-      select: {
-        rentalFee: true,
-        createdAt: true,
-      },
-    }),
-  ])
+  const [orders, customOrders, rentalOrders, payouts, platformCommission] =
+    await Promise.all([
+      prisma.order.findMany({
+        select: {
+          id: true,
+          orderNumber: true,
+          total: true,
+          status: true,
+          paymentStatus: true,
+          escrowStatus: true,
+          payoutId: true,
+          createdAt: true,
+          returnRequests: {
+            where: {
+              status: {
+                in: [
+                  ReturnStatus.PENDING,
+                  ReturnStatus.APPROVED,
+                  ReturnStatus.SHIPPING_BACK,
+                  ReturnStatus.RECEIVED,
+                ],
+              },
+            },
+            select: { id: true },
+          },
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              shopName: true,
+              bankName: true,
+              bankAccount: true,
+              bankAccountName: true,
+            },
+          },
+        },
+      }),
+      prisma.customOrder.findMany({
+        select: {
+          finalAmount: true,
+          totalPaid: true,
+          createdAt: true,
+        },
+      }),
+      prisma.rentalOrder.findMany({
+        select: {
+          rentalFee: true,
+          createdAt: true,
+        },
+      }),
+      prisma.sellerPayout.findMany({
+        include: {
+          seller: {
+            select: {
+              name: true,
+              shopName: true,
+            },
+          },
+          orders: {
+            select: { id: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.systemFee.findFirst({
+        where: {
+          name: "platform_commission",
+          feeType: "percentage",
+          isActive: true,
+        },
+        select: { feeValue: true },
+      }),
+    ])
 
   const saleRevenue = orders.reduce(
     (sum, order) => sum + Number(order.total),
@@ -115,6 +175,84 @@ export default async function RevenuePage() {
       .reduce((sum, item) => sum + item.amount, 0),
   }))
 
+  const platformCommissionRate = platformCommission
+    ? Number(platformCommission.feeValue)
+    : 10
+  const escrowHolding = orders
+    .filter((order) => order.escrowStatus === EscrowStatus.HOLDING)
+    .reduce((sum, order) => sum + Number(order.total), 0)
+  const escrowReadyOrders = orders.filter(
+    (order) =>
+      order.status === OrderStatus.COMPLETED &&
+      order.paymentStatus === PaymentStatus.PAID &&
+      order.escrowStatus === EscrowStatus.HOLDING &&
+      order.payoutId === null &&
+      order.returnRequests.length === 0
+  )
+  const escrowReady = escrowReadyOrders.reduce(
+    (sum, order) => sum + Number(order.total),
+    0
+  )
+  const escrowReleased = orders
+    .filter((order) => order.escrowStatus === EscrowStatus.RELEASED)
+    .reduce((sum, order) => sum + Number(order.total), 0)
+
+  const eligibleBySeller = new Map<
+    number,
+    {
+      sellerId: number
+      sellerName: string
+      sellerEmail: string
+      bankName: string | null
+      bankAccount: string | null
+      bankAccountName: string | null
+      orderCount: number
+      grossAmount: number
+    }
+  >()
+
+  for (const order of escrowReadyOrders) {
+    const current = eligibleBySeller.get(order.seller.id) ?? {
+      sellerId: order.seller.id,
+      sellerName: order.seller.shopName ?? order.seller.name,
+      sellerEmail: order.seller.email,
+      bankName: order.seller.bankName,
+      bankAccount: order.seller.bankAccount,
+      bankAccountName: order.seller.bankAccountName,
+      orderCount: 0,
+      grossAmount: 0,
+    }
+
+    current.orderCount += 1
+    current.grossAmount += Number(order.total)
+    eligibleBySeller.set(order.seller.id, current)
+  }
+
+  const eligiblePayouts = Array.from(eligibleBySeller.values()).map((item) => {
+    const platformFee = (item.grossAmount * platformCommissionRate) / 100
+    return {
+      ...item,
+      platformFee,
+      netAmount: item.grossAmount - platformFee,
+    }
+  })
+
+  const serializedPayouts = payouts.map((payout) => ({
+    id: payout.id,
+    sellerName: payout.seller.shopName ?? payout.seller.name,
+    orderCount: payout.orders.length,
+    amount: Number(payout.amount),
+    platformFee: Number(payout.platformFee),
+    netAmount: Number(payout.netAmount),
+    status: payout.status,
+    bankName: payout.bankName,
+    bankAccount: payout.bankAccount,
+    bankAccountName: payout.bankAccountName,
+    transferProof: payout.transferProof,
+    createdAt: payout.createdAt.toISOString(),
+    processedAt: payout.processedAt?.toISOString() ?? null,
+  }))
+
   return (
     <RevenueManagement
       currentMonthRevenue={currentMonthRevenue}
@@ -122,6 +260,11 @@ export default async function RevenuePage() {
       growthRate={growthRate}
       revenueByType={revenueByType}
       monthlyRevenue={monthlyRevenue}
+      eligiblePayouts={eligiblePayouts}
+      payouts={serializedPayouts}
+      escrowHolding={escrowHolding}
+      escrowReady={escrowReady}
+      escrowReleased={escrowReleased}
     />
   )
 }

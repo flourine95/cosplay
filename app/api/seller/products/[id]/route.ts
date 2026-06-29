@@ -4,6 +4,10 @@ import { ProductStatus, ProductType } from "@/app/generated/prisma/enums"
 import { requireSeller } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import {
+  getMissingSellerProductProfileFields,
+  getSellerProductProfileErrorMessage,
+} from "@/lib/seller-profile-completion"
+import {
   sellerProductInclude,
   serializeSellerProduct,
 } from "@/lib/seller-product"
@@ -87,6 +91,14 @@ export async function PATCH(
     }
 
     const { data } = parsed
+    const missingProfileFields = getMissingSellerProductProfileFields(seller)
+    if (missingProfileFields.length > 0) {
+      return NextResponse.json(
+        { error: getSellerProductProfileErrorMessage(missingProfileFields) },
+        { status: 400 }
+      )
+    }
+
     const [existing, category] = await Promise.all([
       prisma.product.findUnique({
         where: { id: productId },
@@ -113,6 +125,7 @@ export async function PATCH(
 
     const hasRental =
       data.type === ProductType.RENTAL || data.type === ProductType.BOTH
+    const productPrice = new Prisma.Decimal(data.price)
     const tags = data.condition
       ? [...data.tags, `condition:${data.condition}`]
       : data.tags
@@ -126,23 +139,19 @@ export async function PATCH(
         where: { id: productId },
         data: {
           name: data.name,
-          slug: data.slug,
           categoryId: data.categoryId,
           description: data.description,
           shortDescription: data.shortDescription,
-          price: new Prisma.Decimal(data.price),
+          price: productPrice,
           comparePrice:
             data.comparePrice != null
               ? new Prisma.Decimal(data.comparePrice)
               : null,
           sku: data.sku || null,
           type: data.type,
-          status: data.status,
+          status: ProductStatus.DRAFT,
           tags,
-          publishedAt:
-            data.status === ProductStatus.ACTIVE
-              ? (existing.publishedAt ?? new Date())
-              : null,
+          publishedAt: null,
           images: {
             create: data.imageUrls.map((url, index) => ({
               url,
@@ -155,7 +164,7 @@ export async function PATCH(
             create: data.variants.map((variant, index) => ({
               name: variant.size,
               sku: variant.sku || undefined,
-              price: new Prisma.Decimal(data.price),
+              price: productPrice,
               stock: variant.stock,
               attributes: { size: variant.size },
               isDefault: index === 0,
@@ -170,7 +179,7 @@ export async function PATCH(
           update: {
             sellerId: seller.id,
             pricePerDay: new Prisma.Decimal(data.rentalPricePerDay ?? 0),
-            depositAmount: new Prisma.Decimal(data.rentalDepositAmount ?? 0),
+            depositAmount: productPrice,
             minDays: data.rentalMinDays,
             maxDays: data.rentalMaxDays,
             condition: data.rentalCondition,
@@ -179,7 +188,7 @@ export async function PATCH(
             productId,
             sellerId: seller.id,
             pricePerDay: new Prisma.Decimal(data.rentalPricePerDay ?? 0),
-            depositAmount: new Prisma.Decimal(data.rentalDepositAmount ?? 0),
+            depositAmount: productPrice,
             minDays: data.rentalMinDays,
             maxDays: data.rentalMaxDays,
             condition: data.rentalCondition,
@@ -206,7 +215,7 @@ export async function PATCH(
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { error: "Slug, SKU sản phẩm hoặc SKU biến thể đã tồn tại" },
+        { error: "SKU sản phẩm hoặc SKU biến thể đã tồn tại" },
         { status: 409 }
       )
     }

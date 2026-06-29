@@ -1,4 +1,5 @@
 import { AlertCircle, Clock, ShoppingCart } from "lucide-react"
+import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -9,14 +10,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { RentalRefundButton } from "./rental-refund-button"
 
 type AdminOrderRow = {
   id: string
   customer: string
   seller: string
-  type: "Mua hàng" | "Đặt may" | "Thuê đồ"
+  type: "Mua hang" | "Dat may" | "Thue do"
   item: string
   amount: number
+  deposit?: number
+  refundAmount?: number
+  shippingName?: string
+  shippingPhone?: string
+  shippingAddress?: string
+  shippingCity?: string
+  shippingDistrict?: string
+  shippingWard?: string
+  shippingNote?: string | null
+  returnName?: string
+  returnPhone?: string
+  returnAddress?: string
+  returnCity?: string
+  returnDistrict?: string
+  returnWard?: string
+  returnAddressNote?: string | null
+  pickupImages?: string[]
+  returnImages?: string[]
   status: string
   createdAt: Date
   deadline?: Date | null
@@ -27,7 +47,7 @@ interface OrderManagementProps {
 }
 
 const formatCurrency = (value: number): string =>
-  `${value.toLocaleString("vi-VN")}đ`
+  `${value.toLocaleString("vi-VN")}d`
 
 const formatDate = (value: Date): string =>
   new Intl.DateTimeFormat("vi-VN").format(value)
@@ -38,7 +58,7 @@ const getStatusVariant = (
   if (["CANCELLED", "REFUNDED", "OVERDUE", "REJECTED"].includes(status)) {
     return "destructive"
   }
-  if (["COMPLETED", "DELIVERED", "RETURNED"].includes(status)) {
+  if (["COMPLETED", "DELIVERED"].includes(status)) {
     return "default"
   }
   if (["PENDING", "SUBMITTED", "DRAFT"].includes(status)) {
@@ -48,33 +68,32 @@ const getStatusVariant = (
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: "Chờ xử lý",
-  CONFIRMED: "Đã xác nhận",
-  PROCESSING: "Đang xử lý",
-  SHIPPING: "Đang giao",
-  DELIVERED: "Đã giao",
-  COMPLETED: "Hoàn tất",
-  CANCELLED: "Đã hủy",
-  REFUNDED: "Đã hoàn tiền",
-  DRAFT: "Nháp",
-  SUBMITTED: "Đã gửi yêu cầu",
-  QUOTED: "Đã báo giá",
-  QUOTE_ACCEPTED: "Đã nhận báo giá",
-  DEPOSIT_PAID: "Đã đặt cọc",
-  IN_PROGRESS: "Đang thực hiện",
-  REVISION_REQUESTED: "Yêu cầu chỉnh sửa",
-  READY: "Sẵn sàng bàn giao",
-  READY_FOR_PICKUP: "Sẵn sàng nhận đồ",
-  RENTED: "Đang thuê",
-  RETURNED: "Đã trả đồ",
-  DEPOSIT_REFUNDED: "Đã hoàn cọc",
-  OVERDUE: "Quá hạn",
+  PENDING: "Cho xu ly",
+  CONFIRMED: "Da xac nhan",
+  PROCESSING: "Dang xu ly",
+  SHIPPING: "Dang giao",
+  DELIVERED: "Da giao",
+  COMPLETED: "Hoan tat",
+  CANCELLED: "Da huy",
+  REFUNDED: "Da hoan tien",
+  DRAFT: "Nhap",
+  SUBMITTED: "Da gui yeu cau",
+  QUOTED: "Da bao gia",
+  QUOTE_ACCEPTED: "Da nhan bao gia",
+  DEPOSIT_PAID: "Admin dang giu coc",
+  IN_PROGRESS: "Dang thuc hien",
+  REVISION_REQUESTED: "Yeu cau chinh sua",
+  READY: "San sang ban giao",
+  READY_FOR_PICKUP: "San sang nhan do",
+  RENTED: "Dang thue",
+  RETURNED: "Khach da bao tra do",
+  DEPOSIT_REFUNDED: "Cho admin hoan coc",
+  OVERDUE: "Qua han",
 }
 
 export default function OrderManagement({ orders }: OrderManagementProps) {
   const activeCount = orders.filter(
-    (order) =>
-      !["COMPLETED", "CANCELLED", "REFUNDED", "RETURNED"].includes(order.status)
+    (order) => !["COMPLETED", "CANCELLED", "REFUNDED"].includes(order.status)
   ).length
   const overdueCount = orders.filter(
     (order) => order.status === "OVERDUE"
@@ -83,20 +102,20 @@ export default function OrderManagement({ orders }: OrderManagementProps) {
 
   const stats = [
     {
-      label: "Tổng đơn hàng",
+      label: "Tong don hang",
       value: orders.length,
       icon: ShoppingCart,
     },
-    { label: "Đang xử lý", value: activeCount, icon: Clock },
-    { label: "Quá hạn", value: overdueCount, icon: AlertCircle },
+    { label: "Dang xu ly", value: activeCount, icon: Clock },
+    { label: "Qua han", value: overdueCount, icon: AlertCircle },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Quản lý đơn hàng</h1>
+        <h1 className="text-2xl font-bold text-foreground">Quan ly don hang</h1>
         <p className="text-sm text-muted-foreground">
-          Theo dõi đơn mua, đơn đặt may và đơn thuê đồ cosplay.
+          Theo doi don mua, don dat may va don thue do cosplay.
         </p>
       </div>
 
@@ -125,30 +144,31 @@ export default function OrderManagement({ orders }: OrderManagementProps) {
 
       <Card className="border-border/60">
         <CardHeader>
-          <CardTitle>Tổng giá trị đơn: {formatCurrency(totalAmount)}</CardTitle>
+          <CardTitle>Tong gia tri don: {formatCurrency(totalAmount)}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mã đơn</TableHead>
-                <TableHead>Loại</TableHead>
-                <TableHead>Khách hàng</TableHead>
+                <TableHead>Ma don</TableHead>
+                <TableHead>Loai</TableHead>
+                <TableHead>Khach hang</TableHead>
                 <TableHead>Seller</TableHead>
-                <TableHead>Sản phẩm/Yêu cầu</TableHead>
-                <TableHead>Giá trị</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Ngày tạo</TableHead>
+                <TableHead>San pham/Yeu cau</TableHead>
+                <TableHead>Gia tri</TableHead>
+                <TableHead>Trang thai</TableHead>
+                <TableHead>Thao tac</TableHead>
+                <TableHead>Ngay tao</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     className="h-24 text-center text-muted-foreground"
                   >
-                    Chưa có đơn hàng nào.
+                    Chua co don hang nao.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -161,17 +181,57 @@ export default function OrderManagement({ orders }: OrderManagementProps) {
                       <Badge variant="secondary">{order.type}</Badge>
                     </TableCell>
                     <TableCell>{order.customer}</TableCell>
-                    <TableCell>{order.seller}</TableCell>
+                    <TableCell>
+                      {order.seller}
+                      {order.type === "Thue do" && order.shippingAddress && (
+                        <span className="mt-1 block space-y-1 text-xs text-muted-foreground">
+                          <span className="block">
+                            Giao: {order.shippingName} - {order.shippingPhone},{" "}
+                            {order.shippingAddress}, {order.shippingWard},{" "}
+                            {order.shippingDistrict}, {order.shippingCity}
+                          </span>
+                          {order.returnAddress && (
+                            <span className="block">
+                              Tra ve: {order.returnName} - {order.returnPhone},{" "}
+                              {order.returnAddress}, {order.returnWard},{" "}
+                              {order.returnDistrict}, {order.returnCity}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="max-w-xs truncate">
                       {order.item}
+                      {order.type === "Thue do" && (
+                        <EvidencePreview
+                          pickupImages={order.pickupImages ?? []}
+                          returnImages={order.returnImages ?? []}
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="font-semibold text-foreground">
                       {formatCurrency(order.amount)}
+                      {order.type === "Thue do" && order.deposit != null && (
+                        <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                          Coc admin giu: {formatCurrency(order.deposit)}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(order.status)}>
                         {statusLabels[order.status] ?? order.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {order.type === "Thue do" &&
+                      order.status === "DEPOSIT_REFUNDED" ? (
+                        <RentalRefundButton
+                          orderNumber={order.id}
+                          refundAmount={order.refundAmount ?? 0}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(order.createdAt)}
@@ -183,6 +243,45 @@ export default function OrderManagement({ orders }: OrderManagementProps) {
           </Table>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function EvidencePreview({
+  pickupImages,
+  returnImages,
+}: {
+  pickupImages: string[]
+  returnImages: string[]
+}) {
+  const images = [
+    ...pickupImages.slice(0, 2).map((url) => ({ url, label: "Nhan" })),
+    ...returnImages.slice(0, 2).map((url) => ({ url, label: "Tra" })),
+  ]
+
+  if (images.length === 0) return null
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {images.map((image) => (
+        <a
+          key={`${image.label}-${image.url}`}
+          href={image.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group relative block h-12 w-12 overflow-hidden rounded-md border border-border bg-muted"
+        >
+          <Image
+            src={image.url}
+            alt={image.label}
+            fill
+            className="object-cover"
+          />
+          <span className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 text-[10px] text-white">
+            {image.label}
+          </span>
+        </a>
+      ))}
     </div>
   )
 }

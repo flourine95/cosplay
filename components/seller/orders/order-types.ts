@@ -1,11 +1,15 @@
-import type { OrderStatus } from "@/app/generated/prisma/enums"
+import type {
+  CustomOrderStatus,
+  OrderStatus,
+} from "@/app/generated/prisma/enums"
 
-export type OrderType = "SALE" | "RENTAL"
-export type OrderTypeFilter = "all" | "sale" | "rental"
-export type OrderStatusFilter = OrderStatus | "all"
+export type OrderType = "SALE" | "RENTAL" | "CUSTOM"
+export type OrderTypeFilter = "all" | "sale" | "rental" | "custom"
+export type OrderStatusFilter = OrderStatus | CustomOrderStatus | "all"
 
 export type SellerOrderListItem = {
   id: number
+  source: "ORDER" | "CUSTOM_ORDER"
   orderNumber: string
   orderType: OrderType
   customer: {
@@ -28,7 +32,7 @@ export type SellerOrderListItem = {
   discount: number
   tax: number
   total: number
-  status: OrderStatus
+  status: OrderStatus | CustomOrderStatus
   statusLabel: string
   paymentStatus: string
   paymentMethod: string
@@ -50,7 +54,7 @@ export type SellerOrderListItem = {
   }[]
   statusHistory: {
     id: number
-    status: OrderStatus
+    status: OrderStatus | CustomOrderStatus
     statusLabel: string
     note: string | null
     createdBy: number | null
@@ -65,6 +69,7 @@ export type SellerOrdersResponse = {
     total: number
     sale: number
     rental: number
-    byStatus: Record<OrderStatus, number>
+    custom: number
+    byStatus: Record<string, number>
   }
 }

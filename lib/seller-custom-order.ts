@@ -48,9 +48,22 @@ export function serializeSellerCustomOrder(
     depositAmount: order.depositAmount?.toNumber() ?? null,
     finalAmount: order.finalAmount?.toNumber() ?? null,
     totalPaid: order.totalPaid.toNumber(),
+    shippingFee: order.shippingFee?.toNumber() ?? 0,
+    trackingCode: order.trackingCode,
+    shippingCarrier: order.shippingCarrier,
+    remainingAmount: Math.max(
+      (order.finalAmount?.toNumber() ?? 0) +
+        (order.shippingFee?.toNumber() ?? 0) -
+        Math.max(
+          order.totalPaid.toNumber(),
+          order.depositAmount?.toNumber() ?? 0
+        ),
+      0
+    ),
     progressPercent: latestProgress?.progressPercent ?? 0,
     createdAt: order.createdAt.toISOString(),
     submittedAt: order.submittedAt?.toISOString() ?? null,
+    acceptedAt: order.acceptedAt?.toISOString() ?? null,
     customer: {
       id: order.user.id,
       name: order.user.name,
